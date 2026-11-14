@@ -23,6 +23,12 @@ x-node: &node
     npm_config_update_notifier: "false"
 
 services:
+  # Fresh Docker volumes are owned by root; hand them to the "node" user once.
+  init:
+    <<: *node
+    user: root
+    command: ["sh", "-c", "chown node:node /app/node_modules /app/shared/node_modules /app/backend/node_modules /app/frontend/node_modules /data"]
+
   dev:
     <<: *node
     profiles: ["tools"]
@@ -31,6 +37,9 @@ services:
   backend:
     <<: *node
     command: ["npm", "run", "dev", "-w", "backend"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
     environment:
       MM_DATA_DIR: /data
       MM_ENV: development
@@ -47,7 +56,10 @@ services:
     ports:
       - "127.0.0.1:5173:5173"
     depends_on:
-      - backend
+      init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
 
 volumes:
   node_modules:

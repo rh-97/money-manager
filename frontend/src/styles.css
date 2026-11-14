@@ -326,3 +326,8 @@ body { margin: 0; }
 .inline-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
 .kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 6px 0; border-top: 1px solid var(--line); }
 .kv:first-child { border-top: 0; }
+
+/* Phone: keep the tab bar pinned to the bottom of the screen, even on short pages. */
+.stage.phone .tabbar { position: fixed; left: 50%; transform: translateX(-50%); width: min(100%, 432px); bottom: 0; padding-left: max(4px, env(safe-area-inset-left, 0px)); padding-right: max(4px, env(safe-area-inset-right, 0px)); }
+.stage.phone main { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+.stage.phone .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }

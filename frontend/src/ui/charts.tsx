@@ -22,7 +22,7 @@ function axisLabel(minor: number): string {
 
 export function IncomeSpendBars({ data, currentMonth }: { data: { month: string; income: number; spent: number }[]; currentMonth: string }) {
   const W = 320, H = 170, L = 40, B = 22, T = 8, ih = H - B - T;
-  const max = niceMax(Math.max(1, ...data.flatMap((d) => [d.income, d.spent])));
+  const max = niceMax(Math.max(100000, ...data.flatMap((d) => [d.income, d.spent])));
   const gw = (W - L) / data.length;
   const bw = Math.min(13, gw / 2 - 3);
   const y = (v: number) => T + ih - (v / max) * ih;
@@ -62,7 +62,7 @@ export function TwoLines({ data, a, b, labels }: { data: { month: string; a: num
   const W = 320, H = 170, L = 52, B = 22, T = 10, R = 8, ih = H - B - T, iw = W - L - R, n = data.length;
   const values = data.flatMap((d) => [d.a, d.b]);
   let lo = Math.min(0, ...values);
-  let hi = Math.max(1, ...values);
+  let hi = Math.max(lo + 100000, ...values);
   const span = niceMax(hi - lo);
   hi = lo + span;
   if (lo < 0) lo = -niceMax(-lo);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { randomId } from '@mm/shared';
+import { derivedId } from '@mm/shared';
 import { fetchSession, logout as apiLogout, unlock, type Session } from './lib/auth.ts';
 import { fmtMoney, setNumberFormat, todayDhaka } from './lib/format.ts';
 import { ConflictError, Vault, type Change } from './lib/vault.ts';
@@ -101,9 +101,16 @@ function Loader({ unlocked, onLogout }: { unlocked: Unlocked; onLogout: () => vo
         const l = vault.getLedger();
         if (!l.settingsId) {
           // First time: default categories and settings (setup continues at step 3).
-          const changes: Change[] = DEFAULT_CATEGORIES.map((c, i) => ({ id: randomId(), type: 'category', value: { ...c, sortOrder: i } }));
-          changes.push({ id: randomId(), type: 'settings', value: defaultSettings() });
-          await vault.save(changes);
+          // Fixed ids: if another device (or a second run) already created them, the save conflicts harmlessly.
+          const key = unlocked.dataKey;
+          const changes: Change[] = DEFAULT_CATEGORIES.map((c, i) => ({ id: derivedId(key, `category:${i}`), type: 'category', value: { ...c, sortOrder: i } }));
+          changes.push({ id: derivedId(key, 'settings'), type: 'settings', value: defaultSettings() });
+          try {
+            await vault.save(changes);
+          } catch (err) {
+            if (!(err instanceof ConflictError)) throw err;
+            await vault.pull();
+          }
         }
         // Recently deleted: erase entries deleted more than 30 days ago.
         const cutoff = new Date(Date.now() - 30 * 864e5).toISOString();
@@ -118,7 +125,7 @@ function Loader({ unlocked, onLogout }: { unlocked: Unlocked; onLogout: () => vo
       cancelled = true;
       vault.stop();
     };
-  }, [vault]);
+  }, [vault, unlocked.dataKey]);
 
   if (error)
     return (

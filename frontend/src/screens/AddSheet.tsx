@@ -74,7 +74,16 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
   const money = accounts.filter(([, a]) => a.kind === 'money' && (!a.archived || a === ledger.accounts.get(preset.accountId ?? '')));
   const loans = accounts.filter(([, a]) => a.kind === 'loan' && !a.archived);
   const openLoans = useMemo(() => loans.map(([id, a]) => ({ id, a, s: loanSummary(ledger, id) })).filter((x) => x.s.status !== 'settled'), [ledger, loans.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cats = [...ledger.categories].filter(([, c]) => !c.hidden && c.kind === (kind === 'income' ? 'income' : 'expense')).sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
+  // Most-used categories first; the rest behind "More".
+  const usage = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const e of ledger.entries.values()) if (e.categoryId && !e.parentId) n.set(e.categoryId, (n.get(e.categoryId) ?? 0) + 1);
+    return n;
+  }, [ledger]);
+  const cats = [...ledger.categories]
+    .filter(([, c]) => !c.hidden && c.system !== 'writeoff' && c.kind === (kind === 'income' ? 'income' : 'expense'))
+    .sort(([ia, a], [ib, b]) => (usage.get(ib) ?? 0) - (usage.get(ia) ?? 0) || a.sortOrder - b.sortOrder);
+  const [allCats, setAllCats] = useState(false);
 
   const presetMoney = preset.accountId && ledger.accounts.get(preset.accountId)?.kind === 'money' ? preset.accountId : undefined;
   const firstUsd = money.find(([, a]) => a.currency === 'USD')?.[0];
@@ -268,12 +277,17 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
           <div className="field">
             <label>Category</label>
             <div className="cat-pick">
-              {cats.map(([cid, c]) => (
+              {(allCats ? cats : cats.slice(0, 8).concat(cats.slice(8).filter(([cid]) => cid === categoryId))).map(([cid, c]) => (
                 <button key={cid} type="button" aria-pressed={categoryId === cid} onClick={() => setCategoryId(cid)}>
                   <span className="swatch" style={{ width: 8, height: 8, borderRadius: 2, background: c.slot ? `var(--c${c.slot})` : 'var(--c-other)' }} />
                   {c.name}
                 </button>
               ))}
+              {!allCats && cats.length > 8 && (
+                <button type="button" onClick={() => setAllCats(true)}>
+                  More…
+                </button>
+              )}
             </div>
           </div>
           <div className="two">

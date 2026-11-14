@@ -48,6 +48,15 @@ export function randomId(): string {
   return s().to_hex(s().randombytes_buf(16));
 }
 
+/**
+ * A stable record id derived from the data key and a label, for records that must
+ * exist only once per user (default categories, settings). Two devices creating
+ * them at the same time get the same ids, so the second save is a harmless conflict.
+ */
+export function derivedId(dataKey: Uint8Array, label: string): string {
+  return s().to_hex(s().crypto_generichash(16, s().from_string(`mm-id-v1:${label}`), dataKey));
+}
+
 // ---------- Password to keys ----------
 
 export interface KdfParams {

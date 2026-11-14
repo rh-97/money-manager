@@ -13,6 +13,7 @@ import {
   openAdminLockbox,
   openLockbox,
   randomId,
+  derivedId,
   sealForAdmin,
   sealLockbox,
   toB64,
@@ -131,6 +132,16 @@ describe('admin recovery', () => {
     const pair = deriveAdminKeyPair('right phrase', salt, FAST);
     const box = sealForAdmin(newDataKey(), toB64(pair.publicKey));
     expect(() => openAdminLockbox(box, deriveAdminKeyPair('wrong phrase', salt, FAST))).toThrow(WrongKeyError);
+  });
+});
+
+describe('derived ids', () => {
+  it('is stable per data key and label, and different across users', () => {
+    const a = newDataKey();
+    expect(derivedId(a, 'settings')).toBe(derivedId(a, 'settings'));
+    expect(derivedId(a, 'settings')).not.toBe(derivedId(a, 'category:0'));
+    expect(derivedId(a, 'settings')).not.toBe(derivedId(newDataKey(), 'settings'));
+    expect(derivedId(a, 'settings')).toMatch(/^[a-f0-9]{32}$/);
   });
 });
 
