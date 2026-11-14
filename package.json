@@ -2,9 +2,20 @@
   "name": "money-manager",
   "private": true,
   "description": "Private, self-hosted, end-to-end encrypted money tracker",
+  "type": "module",
   "workspaces": [
     "shared",
-    "frontend",
-    "backend"
-  ]
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend"
+  },
+  "engines": {
+    "node": ">=24"
+  }
 }
