@@ -181,10 +181,11 @@ export function balanceHistory(l: Ledger, endMonth: string, count: number, today
   return out;
 }
 
+/** A short sentence: before + strong (shown in bold) + after. */
 export interface Insight {
-  text: string;
-  /** The highlighted part, shown in bold. */
+  before: string;
   strong: string;
+  after: string;
 }
 
 export function insights(l: Ledger, today: string, fmt: (minor: number) => string): Insight[] {
@@ -198,7 +199,11 @@ export function insights(l: Ledger, today: string, fmt: (minor: number) => strin
   const prevName = monthName(prev);
   if (last.spent > 0) {
     const diff = last.spent - now.spent;
-    out.push(diff >= 0 ? { text: `less than all of ${prevName} so far.`, strong: `${fmt(diff)}` } : { text: `more than all of ${prevName}.`, strong: `${fmt(-diff)}` });
+    out.push(
+      diff >= 0
+        ? { before: 'You spent ', strong: fmt(diff), after: ` less than all of ${prevName} so far.` }
+        : { before: 'You already spent ', strong: fmt(-diff), after: ` more than all of ${prevName}.` },
+    );
   }
   let best: { name: string; pct: number } | null = null;
   for (const [cat, v] of now.byCategory) {
@@ -207,9 +212,9 @@ export function insights(l: Ledger, today: string, fmt: (minor: number) => strin
     const pct = Math.round(((v - before) / before) * 100);
     if (pct >= 15 && (!best || pct > best.pct)) best = { name: l.categories.get(cat)?.name ?? 'Other', pct };
   }
-  if (best) out.push({ text: `${best.name} is up on ${prevName}.`, strong: `${best.pct}%` });
+  if (best) out.push({ before: `${best.name} is up `, strong: `${best.pct}%`, after: ` on ${prevName}.` });
   const fees = [...now.byCategory].filter(([c]) => l.categories.get(c)?.system === 'fees').reduce((s, [, v]) => s + v, 0);
-  if (fees > 0) out.push({ text: 'went on fees and charges this month.', strong: fmt(fees) });
+  if (fees > 0) out.push({ before: 'Fees and charges cost you ', strong: fmt(fees), after: ' this month.' });
   return out;
 }
 

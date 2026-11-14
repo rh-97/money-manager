@@ -215,7 +215,7 @@ describe('stats', () => {
     expect(daily).toHaveLength(30);
     expect(daily[2]).toBe(tk(6500));
     const ins = insights(l, '2026-11-15', (n) => String(n / 100));
-    expect(ins.some((i) => i.text.startsWith('Food & Groceries is up') && i.strong === '30%')).toBe(true);
-    expect(ins.some((i) => i.text.includes('more than all of October'))).toBe(true);
+    expect(ins.some((i) => i.before === 'Food & Groceries is up ' && i.strong === '30%')).toBe(true);
+    expect(ins.some((i) => i.after.includes('more than all of October'))).toBe(true);
   });
 });

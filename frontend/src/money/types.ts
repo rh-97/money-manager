@@ -84,6 +84,8 @@ export interface Settings {
   rateMode: 'auto' | 'own';
   ownRates: OwnRatePeriod[];
   setupStep: number; // 0 = done; otherwise the next step of first-time setup to show
+  /** The day the user started recording (setup step 3); default start date for new accounts. */
+  startDate?: string;
   createdAt: string;
 }
 
