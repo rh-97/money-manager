@@ -537,7 +537,7 @@ None of these are in version 1. They'll be chosen once version 1 is in use.
 | **Backups** | Automatic nightly backup of the database (plus the attachments folder once extra 7 is added), copied **off the VM to Google Drive** (free tier, via rclone), kept for 30 days, with a tested restore procedure. User data is already encrypted. The backup file is **also encrypted as a whole** (rclone crypt), so usernames and metadata aren't readable on Google Drive either. |
 | **Reliability** | Restarts automatically if the VM or app restarts |
 | **Light on the server** | The VM is small (15.4). The backend only stores and serves encrypted records, so it should use **under ~150 MB of memory** and almost no CPU when idle. The frontend is plain static files. |
-| **Dedicated VM** | The VM is used only for this app. The old demo site on it is to be removed (15.4). |
+| **Dedicated VM** | The VM is used only for this app (15.4). |
 | **Quality** | **Automated tests** check, on every change: **encryption** (encrypt/decrypt round trips, login and unlock keys, password change, both recovery modes, admin phrase change, and a check that the server never receives readable data) · **sync** (version conflicts, delete-vs-edit) · **money math** (balances, transfers with fees, currency conversion, loan repayments oldest first, interest, write-offs, over-repay blocking, balance corrections, recently deleted) · **access** (users can only reach their own records) |
 
 ### 14.1 Attachment storage (for extra 7, later; no paid storage)
@@ -631,14 +631,16 @@ Each is a JSON object, encrypted as one record. Only the browser can read these 
 | CPU / memory | 1 vCPU (Neoverse-N1) · 5.8 GB RAM (~5 GB available) · 2 GB swap |
 | Disk | 45 GB, ~36 GB free |
 | Already running | **nginx** (ports 80/443) · **certbot** with auto-renewing Let's Encrypt certificates for `138.2.66.148` and `138-2-66-148.sslip.io` · Docker · Oracle's monitoring agent |
-| Old demo (to remove) | "diagnostic-center" showcase: a Docker Compose project (5 containers, 2 volumes, ~880 MB of images) in `/opt/diagnostic-center`, plus its nginx site and an old `~/backups` folder |
+| Old demo | **Removed 15 Nov 2026**: the "diagnostic-center" Docker project (containers, volumes, images), its folders, systemd service and nginx site. Kept and renamed: SSH hardening (`90-hardening.conf`: key-only, no root login), `99-swappiness.conf`, the firewall rules (22/80/443 only), and the certbot renewal hook (`reload-nginx`). |
+| Current nginx site | `money-manager` ([deploy/nginx/money-manager.conf](../deploy/nginx/money-manager.conf)): a "coming soon" placeholder over HTTPS that keeps certificate renewal working until go-live |
 | Not installed yet | Node.js, rclone, sqlite3 CLI |
 
 **Verdict:** easily strong enough. The backend needs roughly 100 MB of memory and almost no CPU. Building should happen on the development Mac (also ARM64) or in CI, not on the VM. The single CPU makes building there slow, but running the app is fine.
 
 **Rules for deployment:**
-- The VM is **dedicated to this app**. The old demo is removed before deploying.
-- **Keep** nginx, certbot and its certificates (they can be reused), Docker, and Oracle's agents.
+- The VM is **dedicated to this app**.
+- **Keep** nginx, certbot and its certificates, Docker, and Oracle's agents.
+- **The IP certificate is short-lived** and renews every few days through `/var/www/letsencrypt` on port 80. Any nginx change must keep the `/.well-known/acme-challenge/` location working. Check with `sudo certbot renew --dry-run`.
 - Test the nginx configuration (`nginx -t`) before reloading.
 - The backend listens only on `localhost`, never directly on the internet.
 
@@ -688,7 +690,7 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 **Decided 15 Nov 2026:**
 - **public web address:** the app is reached over the public internet with HTTPS, with extra hardening (14). Tailscale moves to **extra 12**.
 - **separate frontend and backend** in one repository: React static app, Fastify API, and a shared package for common code (15.1, 15.5)
-- **runs on the existing VM** (15.4), dedicated to this app (the old demo is removed), behind its existing nginx, with the backend in Docker
+- **runs on the existing VM** (15.4), dedicated to this app, behind its existing nginx, with the backend in Docker
 - **no import:** recording starts fresh from each user's start date (section 5)
 - **end-to-end encryption:** data is encrypted in the browser, the server stores only encrypted records, and all calculations run in the browser (section 3)
 - **recovery:** each user chooses *admin can recover* (via the admin recovery phrase) or *only I can recover* (personal recovery key) (3.3)
@@ -709,4 +711,5 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | Date | Change |
 |---|---|
 | 15 Nov 2026 | Spec approved as the version 1 baseline. |
-| 15 Nov 2026 | **Architecture:** frontend and backend split into separate folders in one repo (React + Vite static app, Fastify API, shared package), replacing the single Next.js app (15.1, 15.5). **Hosting:** uses the VM's existing nginx instead of Caddy, with the backend in Docker; VM details recorded (15.4); VM dedicated to this app, and the old demo is to be removed. **Access:** public web address with hardening; Tailscale moves to extra 12. |
+| 15 Nov 2026 | **Architecture:** frontend and backend split into separate folders in one repo (React + Vite static app, Fastify API, shared package), replacing the single Next.js app (15.1, 15.5). **Hosting:** uses the VM's existing nginx instead of Caddy, with the backend in Docker; VM details recorded (15.4); VM dedicated to this app. **Access:** public web address with hardening; Tailscale moves to extra 12. |
+| 15 Nov 2026 | **VM cleaned up:** old demo removed; placeholder nginx site installed; certificate renewal verified (15.4). |
