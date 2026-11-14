@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Money Manager backup every night
+
+[Timer]
+# 21:30 UTC = 3:30 AM in Dhaka (the VM clock is UTC)
+OnCalendar=*-*-* 21:30:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

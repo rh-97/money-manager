@@ -1,0 +1,6 @@
+#!/bin/sh
+# Money Manager admin tool on the VM. Installed as /usr/local/bin/mm-admin.
+#   sudo mm-admin create-user ayesha --display-name "Ayesha Rahman"
+#   sudo mm-admin setup-recovery
+#   sudo mm-admin recover-user ayesha
+exec docker compose -f /opt/money-manager/compose.yml exec -it backend node --no-warnings /app/admin/cli.mjs "$@"
