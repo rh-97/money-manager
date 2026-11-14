@@ -528,9 +528,9 @@ None of these are in version 1. They'll be chosen once version 1 is in use.
 
 | Area | Requirement |
 |---|---|
-| **Devices** | Works well from 360 px phone width to large desktop screens, with no sideways scrolling |
+| **Devices** | Works well from 360 px phone width to large desktop screens, with no sideways scrolling. **Wide screens use the full width:** sidebar navigation plus two columns, or three on very wide screens (1280 px and up). Login and setup use a split layout on wide screens. See the approved mockup, [docs/design/mockup-v1.html](design/mockup-v1.html). |
 | **Install** | Can be installed to the phone home screen (PWA) with its own icon |
-| **Theme** | Light, dark, or follow the system |
+| **Look** | Two styles, switchable in **Settings → Style**: **Colour** (default: blue accent and a colour per category) and **Ink** (black and white, with colour only for meaning). Each comes in light, dark, or follow the system. Red/green always comes with a −/+ sign or words, never colour alone. |
 | **Speed** | Pages load in under 1 second on the home network. Unlocking and building all data after login takes under 2 seconds for 10 years of entries on a mid-range phone. |
 | **Accessibility** | Readable font sizes, sufficient contrast, tap targets at least 44 px, works with the keyboard |
 | **Security** | End-to-end encryption (section 3) · **public web address over HTTPS only** (HTTP redirects to HTTPS; HSTS) · login keys hashed on the server · login attempts rate-limited per username and per IP, with growing delays after failures · security headers · firewall open only for SSH, HTTP and HTTPS · SSH by key only · each user can only fetch and change their own encrypted records · strict Content Security Policy and no third-party scripts, to protect the code that handles keys · the admin command-line tool only runs on the VM itself |
@@ -713,3 +713,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | Spec approved as the version 1 baseline. |
 | 15 Nov 2026 | **Architecture:** frontend and backend split into separate folders in one repo (React + Vite static app, Fastify API, shared package), replacing the single Next.js app (15.1, 15.5). **Hosting:** uses the VM's existing nginx instead of Caddy, with the backend in Docker; VM details recorded (15.4); VM dedicated to this app. **Access:** public web address with hardening; Tailscale moves to extra 12. |
 | 15 Nov 2026 | **VM cleaned up:** old demo removed; placeholder nginx site installed; certificate renewal verified (15.4). |
+| 15 Nov 2026 | **UI (M0):** mockup approved with changes: Colour style is the default with Ink switchable in Settings; wide screens use the full width; split login and setup on wide screens (14). |
