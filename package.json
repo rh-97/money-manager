@@ -1,0 +1,10 @@
+{
+  "name": "money-manager",
+  "private": true,
+  "description": "Private, self-hosted, end-to-end encrypted money tracker",
+  "workspaces": [
+    "shared",
+    "frontend",
+    "backend"
+  ]
+}
