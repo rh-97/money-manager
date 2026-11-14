@@ -1,0 +1,9 @@
+{
+  "name": "Money Manager",
+  "short_name": "Money",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f5fa",
+  "theme_color": "#1f5fae",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
