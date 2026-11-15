@@ -273,6 +273,7 @@ details.settled summary::-webkit-details-marker { display: none; }
 .pick-box { width: 22px; height: 22px; flex: none; border: 2px solid var(--line-strong, var(--muted)); border-radius: 7px; display: grid; place-items: center; }
 .acct-row.picked .pick-box { background: var(--accent, var(--ink)); border-color: var(--accent, var(--ink)); color: var(--on-accent, var(--surface)); }
 .pick-box svg { width: 14px; height: 14px; }
+.group-note { font-weight: 500; text-transform: none; letter-spacing: 0; }
 .group-pick { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
 .pick-bar { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--hero-bg); color: var(--hero-ink); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18); }
 .pick-bar .pick-count { color: var(--hero-muted); font-size: 13.5px; }

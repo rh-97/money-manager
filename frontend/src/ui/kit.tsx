@@ -198,3 +198,28 @@ export function Secret({ hidden, children, shown, onToggle, label = 'amount' }: 
     </span>
   );
 }
+
+/** Like useReveal, for many items at once (e.g. hidden account balances): each shown id hides again after 30 seconds. */
+export function useRevealSet(): [Set<string>, (id: string) => void] {
+  const [shown, setShown] = useState<Set<string>>(() => new Set());
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const t = timers.current;
+    return () => t.forEach(clearTimeout);
+  }, []);
+  const toggle = (id: string) =>
+    setShown((prev) => {
+      const next = new Set(prev);
+      clearTimeout(timers.current.get(id));
+      if (next.has(id)) next.delete(id);
+      else {
+        next.add(id);
+        timers.current.set(
+          id,
+          setTimeout(() => setShown((p) => { const n = new Set(p); n.delete(id); return n; }), REVEAL_MS),
+        );
+      }
+      return next;
+    });
+  return [shown, toggle];
+}

@@ -5,7 +5,7 @@ import { accountHistory, rateOn, toBDT } from '../money/calc.ts';
 import type { Account, Currency, LoanAccountType, MoneyAccountType } from '../money/types.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { ACCOUNT_ICONS, Chip, Icon } from '../ui/icons.tsx';
-import { Field, Secret, Sheet, useReveal } from '../ui/kit.tsx';
+import { Field, Secret, Sheet, useReveal, useRevealSet } from '../ui/kit.tsx';
 
 export const MONEY_TYPES: [MoneyAccountType, string][] = [
   ['bank', 'Bank'],
@@ -31,6 +31,9 @@ export function AccountsScreen() {
   const [showArchived, setShowArchived] = useState(false);
   // Totals stay hidden until the top card is tapped, so nobody sees them over your shoulder.
   const [showTotals, toggleTotals] = useReveal();
+  // Hidden-balance accounts the user has tapped open; group totals include only these and the visible ones.
+  const [revealed, toggleRevealed] = useRevealSet();
+  const visibleNow = (id: string, a: Account) => !a.hideBalance || revealed.has(id);
   // "Add up": pick any accounts to see their combined total. Only for this view; nothing is saved.
   const [picking, setPicking] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
@@ -54,7 +57,7 @@ export function AccountsScreen() {
   }).filter((t) => t.count > 0);
   const pickedRows = money.filter(([id]) => picked.has(id));
   const pickedSum = pickedRows.reduce((s, x) => s + inBDT(x), 0);
-  const pickedHidden = pickedRows.some(([, a]) => a.hideBalance);
+  const pickedHidden = pickedRows.some(([id, a]) => !visibleNow(id, a));
   const pickedUsd = pickedRows.some(([, a]) => a.currency === 'USD');
   const rate = rateOn(ledger, today);
   const hasUsd = money.some(([, a]) => a.currency === 'USD');
@@ -140,7 +143,10 @@ export function AccountsScreen() {
         {MONEY_TYPES.map(([type, label]) => {
           const items = visible.filter(([, a]) => a.type === type);
           if (!items.length) return null;
-          const sum = byType.find((t) => t.type === type)?.sum ?? 0;
+          // Group total: always shown, but leaves out hidden balances until they are tapped open.
+          const all = money.filter(([, a]) => a.type === type);
+          const sum = all.filter(([id, a]) => visibleNow(id, a)).reduce((s, x) => s + inBDT(x), 0);
+          const leftOut = all.filter(([id, a]) => !visibleNow(id, a)).length;
           return (
             <div key={type} className="col" style={{ gap: 8 }}>
               <div className="group-head">
@@ -151,7 +157,10 @@ export function AccountsScreen() {
                 ) : (
                   <span>{label}</span>
                 )}
-                <span className="num">{showTotals ? fmtMoney(sum) : '••••••'}</span>
+                <span className="num">
+                  {fmtMoney(sum)}
+                  {leftOut > 0 && <span className="group-note"> + {leftOut} hidden</span>}
+                </span>
               </div>
               <section className="card" style={{ paddingBlock: 4 }}>
                 <div className="rows">
@@ -175,7 +184,7 @@ export function AccountsScreen() {
                           </span>
                         </span>
                         <span className={`row-amt num ${b < 0 ? 'neg' : ''}`}>
-                          <Secret hidden={hide} label={`${a.name} balance`}>
+                          <Secret hidden={hide} shown={revealed.has(id)} onToggle={() => toggleRevealed(id)} label={`${a.name} balance`}>
                             {fmtMoney(b, a.currency)}
                           </Secret>
                           {a.type === 'card' && b < 0 && !hide && <small>owed on card</small>}
