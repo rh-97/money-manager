@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmtDate, fmtMoney } from '../lib/format.ts';
-import { accountLabel, liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
+import { accountLabel, shownOnHome, liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
 import { Secret, useReveal } from '../ui/kit.tsx';
@@ -155,8 +155,8 @@ export function HomeScreen() {
     </section>
   );
 
-  // Home lists only the accounts counted in the Home total; the Accounts page lists them all.
-  const homeAccounts = money.filter(([, a]) => a.includeInTotal);
+  // Home lists the accounts switched on for it ("Show this account on Home"); the Accounts page lists them all.
+  const homeAccounts = money.filter(([, a]) => shownOnHome(a));
   const accounts = (
     <section className="card" aria-label="Accounts">
       <div className="card-head">
@@ -164,12 +164,13 @@ export function HomeScreen() {
         <button className="link" onClick={() => go('/accounts')}>All {money.length}</button>
       </div>
       <div className="acct-grid">
-        {!homeAccounts.length && <p className="small-muted">No accounts are counted in the Home total.</p>}
+        {!homeAccounts.length && <p className="small-muted">No accounts are shown on Home. Turn on "Show this account on Home" in an account's settings.</p>}
         {homeAccounts.slice(0, xl ? homeAccounts.length : 6).map(([id, a]) => {
           const bal = bals.get(id) ?? 0;
           return (
             <button key={id} className="acct-mini" onClick={() => go(`/accounts/${id}`)}>
               <span className="n">{a.name}</span>
+              {!a.includeInTotal && <span className="not-counted">not in total</span>}
               <span className={`v num ${bal < 0 ? 'neg' : ''}`}>
                 <Secret hidden={Boolean(a.hideBalance)} label={`${a.name} balance`}>
                   {fmtMoney(bal, a.currency)}

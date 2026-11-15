@@ -3,14 +3,17 @@ import { createRoot } from 'react-dom/client';
 import { cryptoReady } from '@mm/shared';
 import { App } from './App.tsx';
 import './styles.css';
+import { applyContrast } from './lib/contrast.ts';
 
 // Apply the last used look before anything renders, so the login screen matches.
 try {
-  const look = JSON.parse(localStorage.getItem('mm-look') ?? '{}') as { style?: string; theme?: string };
+  const look = JSON.parse(localStorage.getItem('mm-look') ?? '{}') as { style?: string; theme?: string; contrast?: number };
   document.documentElement.dataset.style = look.style ?? 'colour';
   if (look.theme && look.theme !== 'system') document.documentElement.dataset.theme = look.theme;
+  applyContrast(look.contrast);
 } catch {
   document.documentElement.dataset.style = 'colour';
+  applyContrast(undefined);
 }
 
 await cryptoReady();

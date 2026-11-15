@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { applyContrast, clampContrast, CONTRAST_MAX, CONTRAST_NAMES } from '../lib/contrast.ts';
 import { derivePasswordKeys, randomId, type api } from '@mm/shared';
 import { changePassword, changeRecovery, MIN_PASSWORD } from '../lib/auth.ts';
 import { fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
@@ -45,6 +46,17 @@ export function SettingsScreen() {
     });
   };
 
+  // Card contrast: dragging previews at once; the level is saved 400 ms after the last change.
+  const saved = clampContrast(s.contrast);
+  const [contrast, setContrast] = useState(saved);
+  useEffect(() => setContrast(saved), [saved]);
+  useEffect(() => {
+    if (contrast === saved) return;
+    const t = setTimeout(() => update({ contrast }), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contrast]);
+
   const look = (
     <Section title="Look">
       <div className="rows">
@@ -68,6 +80,29 @@ export function SettingsScreen() {
             <span className="row-sub">{s.numberFormat === 'bd' ? '৳1,00,000 (lakh)' : '৳100,000'}</span>
           </span>
           <Seg label="Number format" value={s.numberFormat} options={[['bd', 'Lakh'], ['intl', 'International']]} onChange={(v) => void update({ numberFormat: v })} />
+        </div>
+        <div className="row setting-row">
+          <span className="row-main">
+            <span className="row-title">Card contrast</span>
+            <span className="row-sub">How clearly cards stand out from the background</span>
+          </span>
+          <span className="contrast-dial">
+            <input
+              type="range"
+              min={0}
+              max={CONTRAST_MAX}
+              step={1}
+              value={contrast}
+              aria-label="Card contrast"
+              aria-valuetext={CONTRAST_NAMES[contrast]}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setContrast(v);
+                applyContrast(v); // preview straight away; saved a moment after the last move
+              }}
+            />
+            <span className="contrast-name">{CONTRAST_NAMES[contrast]}</span>
+          </span>
         </div>
       </div>
     </Section>

@@ -2,6 +2,8 @@
 
 **Mockup:** [mockup-v1.html](mockup-v1.html), a clickable prototype with sample data. Open it in a browser. Published privately at https://claude.ai/artifact/AFwvkCJppTTN68kVvXYZKG.
 
+**Card contrast mockup:** [mockup-contrast.html](mockup-contrast.html), the same prototype with a *Card contrast* dial (16 Nov 2026, approved; now in Settings > Look).
+
 ## Goal
 
 Understand your money **without effort**: where you stand, where it went, and who owes whom, each readable at a glance.

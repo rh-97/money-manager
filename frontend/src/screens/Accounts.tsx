@@ -341,6 +341,7 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
   const [startDate, setStartDate] = useState(existing?.startDate ?? ledger.settings.startDate ?? today);
   const [include, setInclude] = useState(existing?.includeInTotal ?? true);
   const [hideBalance, setHideBalance] = useState(existing?.hideBalance ?? false);
+  const [showHome, setShowHome] = useState(existing ? (existing.showOnHome ?? existing.includeInTotal) : true);
   const [slot, setSlot] = useState(existing?.slot ?? 1 + (ledger.accounts.size % 6));
   const [note, setNote] = useState(existing?.note ?? '');
   const [phone, setPhone] = useState(existing?.phone ?? '');
@@ -372,6 +373,7 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
       startDate,
       includeInTotal: include,
       hideBalance: kind === 'money' && hideBalance ? true : undefined,
+      showOnHome: kind === 'money' ? showHome : undefined,
       archived: existing?.archived ?? false,
       slot,
       note: note.trim() || undefined,
@@ -509,6 +511,12 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
           <label className="check-row">
             <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />
             <span>Count this in the Home total. Turn it off for savings you don't want to see every day, or money held for someone. The Accounts page always counts every account.</span>
+          </label>
+        )}
+        {kind === 'money' && (
+          <label className="check-row">
+            <input type="checkbox" checked={showHome} onChange={(e) => setShowHome(e.target.checked)} />
+            <span>Show this account on Home, among the account cards. Handy for the cash in your pocket and the bank your salary comes into. The Accounts page always lists every account.</span>
           </label>
         )}
         {kind === 'money' && (

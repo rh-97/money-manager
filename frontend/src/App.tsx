@@ -4,6 +4,7 @@ import { fetchSession, logout as apiLogout, unlock, type Session } from './lib/a
 import { fmtMoney, setNumberFormat, todayDhaka } from './lib/format.ts';
 import { ConflictError, Vault, type Change } from './lib/vault.ts';
 import { ApiError } from './lib/api.ts';
+import { applyContrast } from './lib/contrast.ts';
 import { forgetDevice, keepDeviceUnlockedWhileUsed, openRememberedDevice, rememberDevice } from './lib/remember.ts';
 import { DEFAULT_CATEGORIES, defaultSettings } from './money/defaults.ts';
 import type { Entry } from './money/types.ts';
@@ -242,19 +243,25 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
   const today = todayDhaka();
 
   // Apply the user's look (synced in their settings) and remember it for the login screen.
-  const { style, theme, numberFormat } = ledger.settings;
+  const { style, theme, numberFormat, contrast } = ledger.settings;
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.style = style;
     if (theme === 'system') delete root.dataset.theme;
     else root.dataset.theme = theme;
     setNumberFormat(numberFormat);
+    applyContrast(contrast);
     try {
-      localStorage.setItem('mm-look', JSON.stringify({ style, theme }));
+      localStorage.setItem('mm-look', JSON.stringify({ style, theme, contrast }));
     } catch {
       /* private mode */
     }
-  }, [style, theme, numberFormat]);
+    // "Auto" theme: the device switching between light and dark changes the colours to work from.
+    const mq = matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => applyContrast(contrast);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [style, theme, numberFormat, contrast]);
 
   const save = useCallback(
     async (changes: Change[], okMessage?: string) => {

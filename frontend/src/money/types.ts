@@ -25,6 +25,8 @@ export interface Account {
   startingBalance: number;
   startDate: string; // YYYY-MM-DD
   includeInTotal: boolean;
+  /** Money accounts: listed among Home's account cards. Unset = same as includeInTotal (how it worked before). */
+  showOnHome?: boolean;
   /** Show dots instead of the balance until tapped (for people looking over your shoulder). */
   hideBalance?: boolean;
   archived: boolean;
@@ -87,6 +89,8 @@ export interface Settings {
   style: 'colour' | 'ink';
   theme: 'light' | 'dark' | 'system';
   numberFormat: 'bd' | 'intl';
+  /** Card contrast level 0-5 (lib/contrast.ts); unset = the default level. */
+  contrast?: number;
   rateMode: 'auto' | 'own';
   ownRates: OwnRatePeriod[];
   setupStep: number; // 0 = done; otherwise the next step of first-time setup to show

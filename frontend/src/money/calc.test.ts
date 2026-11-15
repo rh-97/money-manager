@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cryptoReady } from '@mm/shared';
-import { accountLabel, balances, dailySpending, groupByPerson, insights, loanSummary, loanTitle, monthlySeries, offsetPlan, periodStats, rateOn, totals, type Ledger } from './calc.ts';
+import { accountLabel, balances, shownOnHome, dailySpending, groupByPerson, insights, loanSummary, loanTitle, monthlySeries, offsetPlan, periodStats, rateOn, totals, type Ledger } from './calc.ts';
 import { cancelOut, correction, expenseOrIncome, repay, transfer, writeOff } from './actions.ts';
 import { DEFAULT_CATEGORIES, defaultSettings } from './defaults.ts';
 import type { Account, Category, Entry } from './types.ts';
@@ -262,6 +262,15 @@ describe('loan reasons, people and cancelling out (7.1, 7.9)', () => {
     const entries = cancelOut(plan, '2026-11-16');
     expect(entries[1]!.value.parentId).toBe(entries[0]!.id);
     expect(entries.every((e) => e.value.loanAction === 'offset')).toBe(true);
+  });
+});
+
+describe('Home account cards (4.1)', () => {
+  it('follows "count in the Home total" until the account has its own setting', () => {
+    expect(shownOnHome(account({ name: 'Cash', includeInTotal: true }))).toBe(true);
+    expect(shownOnHome(account({ name: 'FDR', includeInTotal: false }))).toBe(false);
+    expect(shownOnHome(account({ name: 'FDR', includeInTotal: false, showOnHome: true }))).toBe(true);
+    expect(shownOnHome(account({ name: 'Nagad', includeInTotal: true, showOnHome: false }))).toBe(false);
   });
 });
 

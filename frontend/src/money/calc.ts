@@ -363,3 +363,6 @@ export function offsetPlan(l: Ledger, loanIds: string[]): OffsetPair[] {
   }
   return pairs;
 }
+
+/** Whether a money account is listed on Home (4.1). Accounts saved before the switch existed follow "count in the Home total". */
+export const shownOnHome = (a: Account): boolean => a.showOnHome ?? a.includeInTotal;

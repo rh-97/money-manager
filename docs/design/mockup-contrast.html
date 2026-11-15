@@ -1,0 +1,925 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Contrast Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: summary-first cards; phone = single column + bottom tab bar; wide = sidebar + two-column grid.
+   Two styles: "ink" (black and white, colour only for meaning) and "colour" (category hues). */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --surface-2: #eef0f3; --ink: #121417; --muted: #5b616a; --faint: #8a9099; --line: #e2e5e9;
+  --pos: #17803d; --neg: #c23a31; --pos-soft: #e6f3ea; --neg-soft: #fbebea;
+  --accent: #121417; --on-accent: #ffffff;
+  --hero-bg: #121417; --hero-ink: #ffffff; --hero-muted: #b8bdc4;
+  --bar: #121417; --bar-2: #a3a9b1; --track: #e6e8ec;
+  --c1: #2b2f35; --c2: #2b2f35; --c3: #2b2f35; --c4: #2b2f35; --c5: #2b2f35; --c6: #2b2f35; --c-other: #9aa0a8;
+  --heat-0: #eceef1; --heat-1: #c9cdd3; --heat-2: #9aa1aa; --heat-3: #5f6670; --heat-4: #121417;
+  --scrim: rgba(10, 12, 14, 0.45);
+  --font-display: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-lg: 20px; --r-md: 14px; --r-sm: 10px;
+  color-scheme: light;
+}
+:root[data-style="colour"] {
+  --bg: #f2f5fa; --surface: #ffffff; --surface-2: #eaf0f8; --ink: #13202f; --muted: #536072; --faint: #8794a6; --line: #dde4ee;
+  --accent: #2a78d6; --on-accent: #ffffff;
+  --hero-bg: #1f5fae; --hero-ink: #ffffff; --hero-muted: #cddcf3;
+  --bar: #2a78d6; --bar-2: #eb6834; --track: #e3e9f2;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #6250d6; --c-other: #9aa6b6;
+  --heat-0: #e6ecf4; --heat-1: #b7d3f6; --heat-2: #86b6ef; --heat-3: #3987e5; --heat-4: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0e10; --surface: #16181b; --surface-2: #1f2226; --ink: #f1f2f4; --muted: #a6acb4; --faint: #7d838c; --line: #2b2f34;
+    --pos: #52c47f; --neg: #f2766d; --pos-soft: #13261a; --neg-soft: #2d1816;
+    --accent: #f1f2f4; --on-accent: #0d0e10;
+    --hero-bg: #f1f2f4; --hero-ink: #0d0e10; --hero-muted: #4c525a;
+    --bar: #e9ebee; --bar-2: #6a7078; --track: #2b2f34;
+    --c1: #d9dce0; --c2: #d9dce0; --c3: #d9dce0; --c4: #d9dce0; --c5: #d9dce0; --c6: #d9dce0; --c-other: #6a7078;
+    --heat-0: #1f2226; --heat-1: #3a3f45; --heat-2: #5f656d; --heat-3: #9aa0a8; --heat-4: #eef0f2;
+    --scrim: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+  :root[data-style="colour"]:not([data-theme="light"]) {
+    --bg: #0c1320; --surface: #131c2b; --surface-2: #1a2537; --ink: #eef3fa; --muted: #a7b3c5; --faint: #7a889c; --line: #253248;
+    --accent: #4f95ea; --on-accent: #08111f;
+    --hero-bg: #1c4f96; --hero-ink: #ffffff; --hero-muted: #bcd0ec;
+    --bar: #3987e5; --bar-2: #d95926; --track: #253248;
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #9085e9; --c-other: #6c7a8e;
+    --heat-0: #1a2537; --heat-1: #184f95; --heat-2: #256abf; --heat-3: #3987e5; --heat-4: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0e10; --surface: #16181b; --surface-2: #1f2226; --ink: #f1f2f4; --muted: #a6acb4; --faint: #7d838c; --line: #2b2f34;
+  --pos: #52c47f; --neg: #f2766d; --pos-soft: #13261a; --neg-soft: #2d1816;
+  --accent: #f1f2f4; --on-accent: #0d0e10;
+  --hero-bg: #f1f2f4; --hero-ink: #0d0e10; --hero-muted: #4c525a;
+  --bar: #e9ebee; --bar-2: #6a7078; --track: #2b2f34;
+  --c1: #d9dce0; --c2: #d9dce0; --c3: #d9dce0; --c4: #d9dce0; --c5: #d9dce0; --c6: #d9dce0; --c-other: #6a7078;
+  --heat-0: #1f2226; --heat-1: #3a3f45; --heat-2: #5f656d; --heat-3: #9aa0a8; --heat-4: #eef0f2;
+  --scrim: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+:root[data-theme="dark"][data-style="colour"] {
+  --bg: #0c1320; --surface: #131c2b; --surface-2: #1a2537; --ink: #eef3fa; --muted: #a7b3c5; --faint: #7a889c; --line: #253248;
+  --accent: #4f95ea; --on-accent: #08111f;
+  --hero-bg: #1c4f96; --hero-ink: #ffffff; --hero-muted: #bcd0ec;
+  --bar: #3987e5; --bar-2: #d95926; --track: #253248;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #9085e9; --c-other: #6c7a8e;
+  --heat-0: #1a2537; --heat-1: #184f95; --heat-2: #256abf; --heat-3: #3987e5; --heat-4: #86b6ef;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.muted { color: var(--muted); }
+
+/* Prototype controls (not part of the app) */
+.mock-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px dashed var(--line); font-size: 12.5px; color: var(--muted); }
+.mock-bar strong { color: var(--ink); font-weight: 600; }
+.mock-group { display: flex; align-items: center; gap: 6px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 2px; }
+.seg button { border: 0; background: transparent; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.mock-note { flex-basis: 100%; font-size: 12px; }
+
+/* Stage */
+.stage { padding-block: 16px 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stage.phone .app { max-width: 400px; margin: 0 auto; }
+.stage.phone.framed .app { border: 1px solid var(--line); border-radius: 28px; overflow: clip; background: var(--bg); }
+.stage.wide .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 28px; }
+.stage.wide.auth-mode .app { display: block; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.wide-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wide-grid.list-side { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+.sticky-col { position: sticky; top: 16px; }
+
+/* Login / setup on wide screens: split card */
+.auth-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-width: 1040px; margin: 32px auto; background: var(--surface); border-radius: 28px; overflow: hidden; min-height: 560px; }
+.auth-panel { background: var(--hero-bg); color: var(--hero-ink); padding: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
+.auth-panel .brand { padding: 0; }
+.auth-panel .brand-mark { background: var(--hero-ink); color: var(--hero-bg); }
+.auth-panel h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
+.auth-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.auth-points li { display: flex; gap: 12px; align-items: flex-start; color: var(--hero-muted); font-size: 14px; }
+.auth-points li b { display: block; color: var(--hero-ink); font-size: 15px; }
+.auth-points li.done b, .auth-points li.done { opacity: 0.7; }
+.auth-points li.current b { text-decoration: underline; text-underline-offset: 4px; }
+.auth-points .n { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--hero-muted); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; color: var(--hero-ink); }
+.auth-points li.current .n { background: var(--hero-ink); color: var(--hero-bg); border-color: var(--hero-ink); }
+.auth-form { padding: 48px 44px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.auth-form .auth-card { background: transparent; padding: 0; }
+
+.screen { display: flex; flex-direction: column; gap: 16px; padding-block: 8px 24px; min-width: 0; }
+.stage.phone.framed .screen { padding-inline: 16px; padding-block: 16px 24px; }
+.wide-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Sidebar (wide) */
+.side { position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 17px; padding: 6px 10px 18px; }
+.brand-mark { width: 28px; height: 28px; border-radius: 9px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 15px; }
+.side-link { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; background: transparent; border-radius: var(--r-sm); text-align: left; color: var(--muted); font-weight: 500; }
+.side-link:hover { background: var(--surface-2); color: var(--ink); }
+.side-link[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.side-add { margin-top: 12px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neg); margin-left: auto; }
+
+/* Bottom tab bar (phone) */
+.tabbar { position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); }
+.stage.phone .tabbar { position: fixed; left: 50%; transform: translateX(-50%); width: min(100%, 432px); bottom: 0; padding-left: max(4px, env(safe-area-inset-left, 0px)); padding-right: max(4px, env(safe-area-inset-right, 0px)); }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--faint); font-size: 11px; font-weight: 500; padding: 4px 0; min-height: 48px; justify-content: center; position: relative; }
+.tab[aria-current="page"] { color: var(--ink); }
+.tab .dot { position: absolute; top: 6px; left: calc(50% + 8px); margin: 0; }
+.tab-add { justify-self: center; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+
+/* Generic pieces */
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.eyebrow { margin: 0; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.h1 { margin: 2px 0 0; font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; text-wrap: balance; }
+.h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+.card { background: var(--surface); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.link { border: 0; background: none; padding: 4px 0; color: var(--muted); font-weight: 500; font-size: 13.5px; }
+.link:hover { color: var(--ink); }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--ink); flex: none; }
+.btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 600; background: var(--accent); color: var(--on-accent); min-height: 44px; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+.btn.small { padding: 7px 12px; min-height: 36px; font-size: 13.5px; border-radius: 10px; }
+.btn.block { width: 100%; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex: none; color: var(--chip, var(--ink)); background: color-mix(in srgb, var(--chip, var(--ink)) 13%, var(--surface)); }
+.ico svg.i { width: 19px; height: 19px; }
+
+/* Hero */
+.hero { background: var(--hero-bg); color: var(--hero-ink); border-radius: var(--r-lg); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.hero-label { margin: 0; font-size: 13px; color: var(--hero-muted); font-weight: 500; }
+.hero-amount { margin: 0; font-size: 38px; font-weight: 800; line-height: 1.1; }
+.hero-sub { margin: 4px 0 0; font-size: 13.5px; color: var(--hero-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hero-sub b { color: var(--hero-ink); font-weight: 700; }
+.info { width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit; font-size: 11px; line-height: 1; padding: 0; display: inline-grid; place-items: center; font-weight: 700; }
+
+/* Month summary */
+.sentence { margin: 0; font-size: 15.5px; line-height: 1.5; }
+.sentence b { font-family: var(--font-display); font-weight: 700; }
+.meter { height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; display: flex; }
+.meter span { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+.meter-legend { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+
+/* Loans card on home */
+.loan-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.loan-half { border: 0; text-align: left; border-radius: var(--r-md); padding: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.loan-half.owe { background: var(--neg-soft); }
+.loan-half.owed { background: var(--pos-soft); }
+.loan-half .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.loan-half .amt { font-size: 22px; font-weight: 800; }
+.loan-half .who { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.settled-note { display: flex; align-items: center; gap: 8px; color: var(--pos); font-weight: 600; }
+
+/* Accounts mini grid */
+.acct-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.acct-mini { border: 0; text-align: left; background: var(--surface-2); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.acct-mini .n { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acct-mini .v { font-size: 16px; font-weight: 700; }
+
+/* Entry rows */
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+.rows > .row:first-child { border-top: 0; }
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-amt { font-weight: 700; font-size: 15.5px; white-space: nowrap; text-align: right; }
+.row-amt small { display: block; font-family: var(--font-body); font-weight: 500; font-size: 11.5px; color: var(--muted); }
+.day-head { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 14px 0 4px; }
+
+/* History */
+.search { display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: var(--r-md); padding: 0 12px; border: 1px solid var(--line); }
+.search input { border: 0; background: transparent; padding: 11px 0; flex: 1; min-width: 0; outline: none; }
+.filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.filter { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--muted); }
+.filter[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.total-box { background: var(--surface); border-radius: var(--r-md); padding: 10px 12px; }
+.total-box .lbl { font-size: 12px; color: var(--muted); }
+.total-box .v { font-size: 18px; font-weight: 800; }
+
+/* Loans */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 14px; padding: 4px; gap: 4px; }
+.tabs button { border: 0; border-radius: 10px; background: transparent; padding: 10px; font-weight: 600; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 0; }
+.tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.tabs .t-amt { font-family: var(--font-display); font-size: 18px; font-weight: 800; }
+.loan-card { background: var(--surface); border-radius: var(--r-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.loan-top { display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 0; text-align: left; width: 100%; }
+.loan-top .row-main { gap: 1px; }
+.progress { height: 8px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.progress span { display: block; height: 100%; border-radius: 999px; background: var(--bar); }
+.loan-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+details.settled { background: var(--surface); border-radius: var(--r-lg); padding: 12px 16px; }
+details.settled summary { cursor: pointer; font-weight: 600; color: var(--muted); list-style: none; display: flex; justify-content: space-between; }
+details.settled summary::-webkit-details-marker { display: none; }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; text-align: center; }
+.flow .party { display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 600; font-size: 13.5px; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 18px; background: var(--surface-2); color: var(--ink); }
+.flow-arrow { display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--font-display); font-weight: 800; font-size: 20px; }
+.flow-arrow svg { width: 64px; height: 20px; }
+.statement { margin: 0; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 22px; text-wrap: balance; }
+.timeline .row-title { font-weight: 500; }
+.back { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; color: var(--muted); font-weight: 500; padding: 4px 0; }
+
+/* Stats */
+.insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.insight { background: var(--surface); border-radius: var(--r-md); padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+.insight b { font-family: var(--font-display); }
+.cat-bars { display: flex; flex-direction: column; gap: 10px; }
+.cat-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; border: 0; background: none; padding: 0; text-align: left; }
+.cat-bar .name { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cat-bar .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.cat-bar .amt { font-weight: 700; font-size: 14px; }
+.cat-bar .amt small { color: var(--muted); font-family: var(--font-body); font-weight: 500; font-size: 12px; margin-left: 4px; }
+.cat-bar .trackline { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.cat-bar .trackline span { display: block; height: 100%; border-radius: 4px; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+.legend i.box { width: 10px; height: 10px; border-radius: 3px; }
+.heat { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.heat .dow { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 2px; }
+.heat .cell { aspect-ratio: 1; max-width: 100%; border-radius: 8px; display: grid; place-items: center; font-size: 11.5px; font-weight: 600; }
+.heat .cell.future { background: transparent; border: 1px dashed var(--line); color: var(--faint); font-weight: 500; }
+.heat-legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.heat-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+/* Accounts page */
+.group-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 2px 0; }
+.acct-row { border: 0; background: none; width: 100%; text-align: left; }
+
+/* Sheet */
+.sheet-wrap { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.sheet-wrap.center { align-items: center; padding: 24px; }
+.sheet { width: 100%; max-width: 440px; max-height: 88vh; overflow: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.sheet-wrap.center .sheet { border-radius: 24px; max-width: 480px; }
+.grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.type-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.type-btn { border: 0; background: var(--surface-2); border-radius: var(--r-md); padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 600; font-size: 13.5px; min-height: 84px; justify-content: center; }
+.type-btn small { font-weight: 500; font-size: 11.5px; color: var(--muted); text-align: center; }
+.type-sub { font-size: 12.5px; color: var(--muted); margin: 4px 0 -4px; font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.field input, .field select { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 11px 12px; min-height: 44px; width: 100%; }
+.amount-input { display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--line); padding-bottom: 4px; }
+.amount-input span { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--muted); }
+.amount-input input { border: 0; background: transparent; font-family: var(--font-display); font-size: 34px; font-weight: 800; width: 100%; min-width: 0; outline: none; padding: 0; }
+.cat-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.cat-pick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.cat-pick button[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--ink); font-weight: 600; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+/* Toast + tooltip */
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.tip { position: fixed; z-index: 40; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; padding: 6px 10px; border-radius: 8px; max-width: 240px; line-height: 1.4; }
+.tip b { font-family: var(--font-display); }
+
+/* Login / setup */
+.auth { max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-block: 32px; }
+.auth-card { background: var(--surface); border-radius: 24px; padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; }
+.lockline { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); }
+.steps { display: flex; gap: 4px; }
+.steps span { height: 4px; flex: 1; border-radius: 2px; background: var(--track); }
+.steps span.on { background: var(--accent); }
+.choice { border: 2px solid var(--line); border-radius: 16px; padding: 14px; text-align: left; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.choice[aria-pressed="true"] { border-color: var(--accent); }
+.choice .t { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.choice .d { display: block; margin: 0; font-size: 13.5px; color: var(--muted); }
+.warnline { font-size: 13px; padding: 10px 12px; border-radius: 12px; background: var(--neg-soft); color: var(--ink); }
+.keybox { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; letter-spacing: 0.04em; background: var(--surface-2); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: up .22s ease-out; }
+  .toast { animation: fade .2s ease-out; }
+  @keyframes up { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+}
+@media (max-width: 420px) {
+  .hero-amount { font-size: 34px; }
+  .type-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- Card contrast mockup (dial) ---------- */
+.card, .loan-card, details.settled, .insight, .total-box, .auth-card { box-shadow: 0 0 0 1px var(--cx-edge, transparent), var(--cx-drop, 0 0 #0000); }
+.cx-group input[type=range] { width: 150px; accent-color: var(--accent); }
+.cx-name { min-width: 84px; color: var(--ink); font-weight: 600; }
+.cx-ratio { font-variant-numeric: tabular-nums; }
+.cx-note { flex-basis: 100%; margin: 0; }
+</style>
+
+<div class="mock-bar" role="toolbar" aria-label="Prototype controls">
+  <span><strong>Money Manager prototype</strong> · sample data · nothing is saved</span>
+  <div class="mock-group"><span>Style</span><div class="seg" id="seg-style"><button data-set-style="ink">Ink</button><button data-set-style="colour">Colour</button></div></div>
+  <div class="mock-group"><span>Theme</span><div class="seg" id="seg-theme"><button data-set-theme="light">Light</button><button data-set-theme="dark">Dark</button><button data-set-theme="system">Auto</button></div></div>
+  <div class="mock-group" id="grp-view"><span>Layout</span><div class="seg" id="seg-view"><button data-set-view="phone">Phone</button><button data-set-view="wide">Wide</button></div></div>
+  <div class="mock-group"><span>Screen</span><div class="seg" id="seg-mode"><button data-set-mode="app">App</button><button data-set-mode="login">Login</button><button data-set-mode="setup">First-time setup</button></div></div>
+  <div class="mock-group cx-group"><span>Card contrast</span><input id="cx" type="range" min="0" max="5" step="1" value="2" aria-label="Card contrast"><span class="cx-name" id="cx-name"></span><span class="cx-ratio" id="cx-ratio"></span></div>
+  <p class="cx-note">Drag <b>Card contrast</b>: step 0 is today's look. Higher steps darken the background a little (in dark mode: lighten the cards), and add a thin edge and soft shadow to cards. Try it with each style and theme.</p>
+</div>
+
+<div class="stage" id="stage"><div class="app" id="app"></div></div>
+<div id="sheet-root"></div>
+<div id="toast-root"></div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(() => {
+  // ---------- Sample data (15 Nov 2026) ----------
+  const RATE = 122.40;
+  const CATS = {
+    food:      { name: 'Food & Groceries', slot: 1, icon: 'cart' },
+    clothing:  { name: 'Clothing', slot: 2, icon: 'bag' },
+    bills:     { name: 'Bills & Utilities', slot: 3, icon: 'bolt' },
+    eating:    { name: 'Eating Out', slot: 4, icon: 'cup' },
+    transport: { name: 'Transport', slot: 5, icon: 'bus' },
+    mobile:    { name: 'Mobile & Internet', slot: 6, icon: 'wifi' },
+    health:    { name: 'Health', slot: 0, icon: 'heart' },
+    fees:      { name: 'Fees & Charges', slot: 0, icon: 'percent' },
+    salary:    { name: 'Salary', slot: 3, icon: 'in' },
+    freelance: { name: 'Freelance', slot: 1, icon: 'in' },
+  };
+  const ACCOUNTS = [
+    { id: 'city', name: 'City Bank Salary', type: 'bank', cur: 'BDT', bal: 124500, slot: 1 },
+    { id: 'dbbl', name: 'DBBL Savings', type: 'bank', cur: 'BDT', bal: 58200, slot: 6 },
+    { id: 'usd', name: 'Dollar account', type: 'bank', cur: 'USD', bal: 320, slot: 3 },
+    { id: 'bkash', name: 'bKash', type: 'wallet', cur: 'BDT', bal: 4950, slot: 5 },
+    { id: 'nagad', name: 'Nagad', type: 'wallet', cur: 'BDT', bal: 1320, slot: 2 },
+    { id: 'wallet', name: 'Cash (wallet)', type: 'cash', cur: 'BDT', bal: 2340, slot: 3 },
+    { id: 'drawer', name: 'Cash (drawer)', type: 'cash', cur: 'BDT', bal: 15000, slot: 4 },
+    { id: 'card', name: 'EBL Credit Card', type: 'card', cur: 'BDT', bal: -8750, slot: 2 },
+    { id: 'fdr', name: 'FDR, 2 years', type: 'savings', cur: 'BDT', bal: 200000, slot: 1, note: '9.5% · matures Mar 2028' },
+  ];
+  const TYPE_INFO = {
+    bank: { label: 'Bank', icon: 'bank' }, wallet: { label: 'Mobile wallet', icon: 'phone' }, cash: { label: 'Cash', icon: 'cash' },
+    card: { label: 'Credit card', icon: 'card' }, savings: { label: 'Savings & investments', icon: 'safe' },
+  };
+  const LOANS = [
+    { id: 'rahim', name: 'Rahim', kind: 'person', dir: 'owe', original: 10000, left: 6000, since: '20 Oct',
+      items: [{ d: '20 Oct', t: 'Borrowed', a: 10000, acct: 'into City Bank Salary' }, { d: '14 Nov', t: 'You repaid', a: -4000, acct: 'from bKash' }] },
+    { id: 'citybank', name: 'City Bank personal loan', kind: 'bank', dir: 'owe', original: 200000, left: 145000, since: '10 Mar',
+      items: [{ d: '10 Mar', t: 'Borrowed', a: 200000, acct: 'into City Bank Salary' }, { d: 'Apr to Oct', t: '7 monthly payments', a: -48125, acct: 'from City Bank Salary' }, { d: '5 Nov', t: 'You repaid (EMI ৳9,200, of which interest ৳2,325)', a: -6875, acct: 'from City Bank Salary' }] },
+    { id: 'karim', name: 'Karim', kind: 'person', dir: 'owed', original: 5000, left: 3000, since: '2 Oct',
+      items: [{ d: '2 Oct', t: 'You lent', a: 5000, acct: 'from bKash' }, { d: '8 Nov', t: 'Karim repaid', a: -2000, acct: 'into Cash (drawer)' }] },
+    { id: 'sumi', name: 'Sumi', kind: 'person', dir: 'owed', original: 1500, left: 1500, since: '28 Oct',
+      items: [{ d: '28 Oct', t: 'You lent', a: 1500, acct: 'from Cash (wallet)' }] },
+    { id: 'jamal', name: 'Jamal', kind: 'person', dir: 'settled', original: 2000, left: 0, since: 'Aug',
+      items: [{ d: '12 Aug', t: 'You lent', a: 2000, acct: 'from bKash' }, { d: '3 Sep', t: 'Jamal repaid', a: -2000, acct: 'into bKash' }] },
+  ];
+  let ENTRIES = [
+    { id: 1, date: '2026-11-15', type: 'expense', title: 'Groceries, Shwapno', cat: 'food', acct: 'bkash', amount: 1250 },
+    { id: 2, date: '2026-11-15', type: 'expense', title: 'Rickshaw', cat: 'transport', acct: 'wallet', amount: 80 },
+    { id: 3, date: '2026-11-14', type: 'repay-out', title: 'Repaid Rahim', person: 'rahim', acct: 'bkash', amount: 4000 },
+    { id: 4, date: '2026-11-13', type: 'expense', title: 'Shoes, Bata', cat: 'clothing', acct: 'card', amount: 3500 },
+    { id: 5, date: '2026-11-12', type: 'transfer', title: 'Cash out', acct: 'bkash', to: 'wallet', amount: 3000, fee: 55 },
+    { id: 6, date: '2026-11-10', type: 'expense', title: 'Electricity bill, DESCO', cat: 'bills', acct: 'bkash', amount: 2140 },
+    { id: 7, date: '2026-11-10', type: 'expense', title: 'Lunch with team', cat: 'eating', acct: 'wallet', amount: 650 },
+    { id: 8, date: '2026-11-09', type: 'correction', title: 'Balance correction', acct: 'bkash', amount: -250 },
+    { id: 9, date: '2026-11-08', type: 'repay-in', title: 'Karim repaid', person: 'karim', acct: 'drawer', amount: 2000 },
+    { id: 10, date: '2026-11-05', type: 'expense', title: 'Internet bill', cat: 'mobile', acct: 'bkash', amount: 1100 },
+    { id: 11, date: '2026-11-05', type: 'repay-out', title: 'City Bank loan EMI', person: 'citybank', acct: 'city', amount: 9200, note: 'incl. ৳2,325 interest' },
+    { id: 12, date: '2026-11-03', type: 'income', title: 'Website project', cat: 'freelance', acct: 'bkash', amount: 3000 },
+    { id: 13, date: '2026-11-01', type: 'income', title: 'November salary', cat: 'salary', acct: 'city', amount: 82000 },
+    { id: 14, date: '2026-11-01', type: 'transfer', title: 'Credit card bill', acct: 'city', to: 'card', amount: 12000 },
+  ];
+  const MONTH = { income: 85000, spent: 21430, lastMonthSpent: 24580 };
+  const CAT_SPEND = [
+    { k: 'food', v: 6820 }, { k: 'clothing', v: 3500 }, { k: 'bills', v: 3240 }, { k: 'eating', v: 2650 }, { k: 'transport', v: 2280 },
+    { k: 'other', v: 2940, name: 'Other (Health, Mobile & Internet, Fees)' },
+  ];
+  const MONTHS6 = [
+    { m: 'Jun', inc: 80000, out: 26900 }, { m: 'Jul', inc: 80000, out: 23100 }, { m: 'Aug', inc: 82000, out: 31800 },
+    { m: 'Sep', inc: 82000, out: 22400 }, { m: 'Oct', inc: 82000, out: 24580 }, { m: 'Nov', inc: 85000, out: 21430, partial: true },
+  ];
+  const TREND = {
+    labels: ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+    have: [380000, 385500, 391200, 390100, 395600, 402300, 399800, 410200, 405100, 418900, 427400, 436728],
+    net:  [198000, 205100, 212400, 213500, 221900, 230500, 236200, 248100, 252000, 266300, 278900, 290228],
+  };
+  const DAILY = [380, 1250, 210, 860, 1720, 340, 2480, 560, 950, 2790, 420, 1305, 3500, 1235, 3430];
+
+  // ---------- State ----------
+  const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+  const S = {
+    style: store.get('mm-style-v2', 'colour'), theme: store.get('mm-theme', 'system'), view: store.get('mm-view', 'phone'),
+    mode: 'app', screen: ['home', 'history', 'loans', 'stats', 'accounts'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home',
+    loan: null, account: null, loanTab: 'owe', filter: 'all', query: '', sheet: null, setupStep: 0, recovery: 'admin',
+  };
+
+  // ---------- Helpers ----------
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const intl = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+  const tk = n => '৳' + intl.format(Math.abs(Math.round(n)));
+  const money = (n, sign) => (sign && n > 0 ? '+' : n < 0 ? '−' : '') + tk(n);
+  const usd = n => '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const acct = id => ACCOUNTS.find(a => a.id === id);
+  const inBDT = a => a.cur === 'USD' ? a.bal * RATE : a.bal;
+  const moneyTotal = () => ACCOUNTS.reduce((s, a) => s + inBDT(a), 0);
+  const oweTotal = () => LOANS.filter(l => l.dir === 'owe').reduce((s, l) => s + l.left, 0);
+  const owedTotal = () => LOANS.filter(l => l.dir === 'owed').reduce((s, l) => s + l.left, 0);
+  const slotVar = n => n ? `var(--c${n})` : 'var(--c-other)';
+  const dayLabel = d => { const dt = new Date(d + 'T00:00:00'); const diff = Math.round((new Date('2026-11-15T00:00:00') - dt) / 864e5);
+    if (diff === 0) return 'Today'; if (diff === 1) return 'Yesterday';
+    return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
+  const initials = n => n.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+  const ICONS = {
+    home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+    list: '<path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    loans: '<path d="M7 8h12l-3-3M17 16H5l3 3"/>',
+    chart: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>',
+    wallet: '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3M4 7.5V17a2 2 0 0 0 2 2h14V8H6.5A2.5 2.5 0 0 1 4 7.5zM16 13.5h.01"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+    bank: '<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+    phone: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 17.5h2"/>',
+    cash: '<rect x="3" y="7" width="18" height="10" rx="2"/><circle cx="12" cy="12" r="2.4"/>',
+    card: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>',
+    safe: '<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 9v1M7 19v2M17 19v2"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/>',
+    cart: '<path d="M3 4h2l2.4 10.5h10.8L20 7H6.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
+    bag: '<path d="M6 8h12l-1 12H7zM9 8a3 3 0 0 1 6 0"/>',
+    bolt: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+    cup: '<path d="M5 8h11v4.5a5.5 5.5 0 0 1-11 0zM16 9.5h1.5a2.5 2.5 0 0 1 0 5H16M8 3v2M12 3v2"/>',
+    bus: '<rect x="5" y="4" width="14" height="13" rx="2.5"/><path d="M5 11h14M8.5 20v-3M15.5 20v-3M8.5 14h.01M15.5 14h.01"/>',
+    wifi: '<path d="M4.5 10.5a11 11 0 0 1 15 0M8 14a6 6 0 0 1 8 0M12 18h.01"/>',
+    heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    percent: '<path d="M18 6L6 18"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>',
+    in: '<path d="M17 7L7 17M7 9v8h8"/>',
+    out: '<path d="M7 17L17 7M9 7h8v8"/>',
+    transfer: '<path d="M5 9h14l-3.5-3.5M19 15H5l3.5 3.5"/>',
+    person: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+    building: '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    back: '<path d="M15 6l-6 6 6 6"/>',
+    scale: '<path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
+    swap: '<path d="M7 4v14M4 15l3 3 3-3M17 20V6M14 9l3-3 3 3"/>',
+    gift: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M12 9v11M3.5 9h17M12 9S10 4.5 7.8 5.5C6 6.4 7.5 9 12 9zm0 0s2-4.5 4.2-3.5C18 6.4 16.5 9 12 9z"/>',
+  };
+  const icon = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+  const ico = (name, slot) => `<span class="ico" style="--chip:${slot === undefined ? 'var(--ink)' : slotVar(slot)}">${icon(name)}</span>`;
+
+  // ---------- Entry display ----------
+  function entryView(e) {
+    const a = acct(e.acct);
+    switch (e.type) {
+      case 'expense': { const c = CATS[e.cat]; return { icon: ico(c.icon, c.slot), title: e.title, sub: `${c.name} · ${a.name}`, amt: `<span class="neg">−${tk(e.amount)}</span>` }; }
+      case 'income': { const c = CATS[e.cat]; return { icon: ico('in', c.slot), title: e.title, sub: `${c.name} · ${a.name}`, amt: `<span class="pos">+${tk(e.amount)}</span>` }; }
+      case 'transfer': return { icon: ico('transfer'), title: e.title, sub: `${a.name} → ${acct(e.to).name}`, amt: `${tk(e.amount)}${e.fee ? `<small>+ ${tk(e.fee)} fee</small>` : '<small>Transfer</small>'}` };
+      case 'repay-out': { const l = LOANS.find(x => x.id === e.person); return { icon: ico(l.kind === 'bank' ? 'building' : 'person'), title: e.title, sub: `Loan · from ${a.name}${e.note ? ' · ' + e.note : ''}`, amt: `−${tk(e.amount)}<small>Loan repaid</small>` }; }
+      case 'repay-in': { const l = LOANS.find(x => x.id === e.person); return { icon: ico('person'), title: e.title, sub: `Loan · into ${a.name}`, amt: `+${tk(e.amount)}<small>Loan returned</small>` }; }
+      case 'lend': return { icon: ico('person'), title: e.title, sub: `Loan · from ${a.name}`, amt: `−${tk(e.amount)}<small>Lent</small>` };
+      case 'borrow': return { icon: ico('person'), title: e.title, sub: `Loan · into ${a.name}`, amt: `+${tk(e.amount)}<small>Borrowed</small>` };
+      case 'correction': return { icon: ico('scale'), title: e.title, sub: `${a.name} · not counted as spending`, amt: `${money(e.amount, true)}<small>Correction</small>` };
+    }
+  }
+  const row = e => { const v = entryView(e); return `<div class="row">${v.icon}<div class="row-main"><span class="row-title">${esc(v.title)}</span><span class="row-sub">${esc(v.sub)}</span></div><div class="row-amt num">${v.amt}</div></div>`; };
+
+  // ---------- Screens ----------
+  function home() {
+    const have = moneyTotal(), owe = oweTotal(), owed = owedTotal(), net = have + owed - owe;
+    const spentPct = Math.round(MONTH.spent / MONTH.income * 100);
+    const less = MONTH.lastMonthSpent - MONTH.spent;
+    const header = `<header class="top"><div><p class="eyebrow">Sunday, 15 November</p><h1 class="h1">Your money</h1></div>${isWide() ? '' : `<button class="icon-btn" data-go="accounts" aria-label="Accounts and settings">${icon('menu')}</button>`}</header>`;
+    const hero = `<section class="hero" aria-label="Totals"><p class="hero-label">Money I have</p><p class="hero-amount num">${tk(have)}</p>
+      <p class="hero-sub">Net worth <b class="num">${tk(net)}</b> after loans <button class="info" data-tip="Net worth = money I have (${tk(have)}) + owed to me (${tk(owed)}) − I owe (${tk(owe)})" aria-label="How net worth is worked out">i</button></p></section>`;
+    const month = `<section class="card" aria-label="This month"><div class="card-head"><h2 class="h2">November so far</h2><button class="link" data-go="stats">Details</button></div>
+      <p class="sentence">You spent <b class="neg">${tk(MONTH.spent)}</b> and earned <b class="pos">${tk(MONTH.income)}</b>.</p>
+      <div class="meter" role="img" aria-label="Spent ${spentPct}% of what you earned"><span style="width:${spentPct}%"></span></div>
+      <div class="meter-legend"><span>Spent ${spentPct}% of income</span><span>${tk(less)} less than October</span></div></section>`;
+    const oweList = LOANS.filter(l => l.dir === 'owe').sort((a, b) => b.left - a.left);
+    const owedList = LOANS.filter(l => l.dir === 'owed').sort((a, b) => b.left - a.left);
+    const loans = `<section class="card" aria-label="Loans"><div class="card-head"><h2 class="h2">Loans</h2><button class="link" data-go="loans">See all</button></div>
+      <div class="loan-split">
+        <button class="loan-half owe" data-go="loans" data-tab="owe"><span class="lbl">${icon('out')} I owe</span><span class="amt num neg">${tk(owe)}</span><span class="who">${oweList.map(l => `${esc(l.name)} ${tk(l.left)}`).join(' · ')}</span></button>
+        <button class="loan-half owed" data-go="loans" data-tab="owed"><span class="lbl">${icon('in')} Owed to me</span><span class="amt num pos">${tk(owed)}</span><span class="who">${owedList.map(l => `${esc(l.name)} ${tk(l.left)}`).join(' · ')}</span></button>
+      </div></section>`;
+    const accts = `<section class="card" aria-label="Accounts"><div class="card-head"><h2 class="h2">Accounts</h2><button class="link" data-go="accounts">All ${ACCOUNTS.length}</button></div>
+      <div class="acct-grid">${ACCOUNTS.slice(0, isXL() ? ACCOUNTS.length : 6).map(a => `<button class="acct-mini" data-account="${a.id}"><span class="n">${esc(a.name)}</span><span class="v num ${a.bal < 0 ? 'neg' : ''}">${a.cur === 'USD' ? usd(a.bal) : money(a.bal)}</span></button>`).join('')}</div></section>`;
+    const recent = `<section class="card" aria-label="Recent"><div class="card-head"><h2 class="h2">Recent</h2><button class="link" data-go="history">See all</button></div>
+      <div class="rows">${ENTRIES.slice(0, isXL() ? 10 : 5).map(row).join('')}</div></section>`;
+    if (isXL()) return `<div class="screen">${header}<div class="wide-grid three"><div class="col">${hero}${month}${loans}</div><div class="col">${recent}</div><div class="col">${accts}</div></div></div>`;
+    if (isWide()) return `<div class="screen">${header}<div class="wide-grid"><div class="col">${hero}${month}${recent}</div><div class="col">${loans}${accts}</div></div></div>`;
+    return `<div class="screen">${header}${hero}${loans}${month}${accts}${recent}</div>`;
+  }
+
+  function historyScreen() {
+    const f = S.filter, q = S.query.trim().toLowerCase();
+    const match = e => (f === 'all' || (f === 'spend' && e.type === 'expense') || (f === 'income' && e.type === 'income') ||
+      (f === 'transfer' && e.type === 'transfer') || (f === 'loans' && /repay|lend|borrow/.test(e.type))) &&
+      (!q || e.title.toLowerCase().includes(q) || String(e.amount).includes(q));
+    const list = ENTRIES.filter(match);
+    const spent = list.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+    const earned = list.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+    const days = [...new Set(list.map(e => e.date))];
+    const chips = [['all', 'All'], ['spend', 'Spending'], ['income', 'Income'], ['transfer', 'Transfers'], ['loans', 'Loans']]
+      .map(([k, l]) => `<button class="filter" data-filter="${k}" aria-pressed="${f === k}">${l}</button>`).join('');
+    const head = `<header class="top"><div><p class="eyebrow">November 2026</p><h1 class="h1">History</h1></div></header>`;
+    const controls = `<label class="search">${icon('search')}<input id="q" type="search" placeholder="Search notes or amounts" value="${esc(S.query)}" aria-label="Search"></label>
+      <div class="filters" style="${isWide() ? 'flex-wrap:wrap' : ''}">${chips}</div>
+      <div class="totals"><div class="total-box"><div class="lbl">Spent (shown)</div><div class="v num neg">${tk(spent)}</div></div><div class="total-box"><div class="lbl">Earned (shown)</div><div class="v num pos">${tk(earned)}</div></div></div>`;
+    const listCard = `<section class="card" style="padding-top:4px">${days.length ? days.map(d => {
+        const items = list.filter(e => e.date === d), dSpent = items.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+        return `<div class="day-head"><span>${dayLabel(d)}</span><span class="num">${dSpent ? 'Spent ' + tk(dSpent) : ''}</span></div><div class="rows">${items.map(row).join('')}</div>`; }).join('')
+        : `<p class="muted" style="margin:12px 0">Nothing matches. Try another word or filter.</p>`}</section>`;
+    if (isWide()) return `<div class="screen">${head}<div class="wide-grid list-side"><div class="col sticky-col">${controls}</div><div class="col">${listCard}</div></div></div>`;
+    return `<div class="screen">${head}${controls}${listCard}</div>`;
+  }
+
+  function loanCard(l) {
+    const repaid = l.original - l.left, pct = Math.round(repaid / l.original * 100);
+    return `<article class="loan-card"><button class="loan-top" data-loan="${l.id}">${ico(l.kind === 'bank' ? 'building' : 'person')}
+      <span class="row-main"><span class="row-title">${esc(l.name)}</span><span class="row-sub">since ${l.since}</span></span>
+      <span class="row-amt num ${l.dir === 'owe' ? 'neg' : 'pos'}">${tk(l.left)}<small>${l.dir === 'owe' ? 'you owe' : 'owes you'}</small></span></button>
+      <div class="progress" role="img" aria-label="${pct}% repaid"><span style="width:${pct}%"></span></div>
+      <div class="loan-meta"><span>${tk(repaid)} of ${tk(l.original)} repaid</span><button class="btn small" data-repay="${l.id}">Repay</button></div></article>`;
+  }
+
+  function loans() {
+    if (S.loan) return loanDetail(LOANS.find(l => l.id === S.loan));
+    const owe = oweTotal(), owed = owedTotal(), tab = S.loanTab;
+    const list = LOANS.filter(l => l.dir === tab).sort((a, b) => b.left - a.left);
+    const settled = LOANS.filter(l => l.dir === 'settled');
+    return `<div class="screen"><header class="top"><div><p class="eyebrow">People and banks</p><h1 class="h1">Loans</h1></div><button class="btn small ghost" data-sheet="type:borrow">${icon('plus')} New</button></header>
+      <div class="tabs" role="tablist"><button data-loantab="owe" aria-pressed="${tab === 'owe'}"><span>I owe</span><span class="t-amt num neg">${tk(owe)}</span></button><button data-loantab="owed" aria-pressed="${tab === 'owed'}"><span>Owed to me</span><span class="t-amt num pos">${tk(owed)}</span></button></div>
+      ${list.length ? `<div class="${isWide() ? 'grid-auto' : 'col'}">${list.map(loanCard).join('')}</div>` : `<section class="card"><p class="settled-note">${icon('check')} You owe nobody</p></section>`}
+      <details class="settled"><summary><span>Settled (${settled.length})</span>${icon('chev')}</summary><div class="rows" style="margin-top:8px">${settled.map(l => `<div class="row">${ico('person')}<div class="row-main"><span class="row-title">${esc(l.name)}</span><span class="row-sub">Settled ✓ · reuse for a new loan</span></div><button class="btn small ghost" data-sheet="type:lend">Lend</button></div>`).join('')}</div></details></div>`;
+  }
+
+  function loanDetail(l) {
+    const repaid = l.original - l.left, pct = Math.round(repaid / l.original * 100), owe = l.dir === 'owe';
+    const arrow = `<div class="flow-arrow num ${owe ? 'neg' : 'pos'}">${tk(l.left)}<svg viewBox="0 0 64 20" aria-hidden="true"><path d="M2 10h58M50 3l10 7-10 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    const you = `<div class="party"><span class="avatar">You</span>You</div>`, them = `<div class="party"><span class="avatar">${initials(l.name)}</span>${esc(l.name.split(' ').slice(0, 2).join(' '))}</div>`;
+    return `<div class="screen"><button class="back" data-back="loan">${icon('back')} Loans</button>${isWide() ? '<div class="wide-grid"><div class="col">' : ''}
+      <section class="card" style="gap:16px"><p class="statement">${owe ? `You owe ${esc(l.name)} <span class="neg num">${tk(l.left)}</span>` : `${esc(l.name)} owes you <span class="pos num">${tk(l.left)}</span>`}</p>
+        <div class="flow" role="img" aria-label="${owe ? 'Money goes from you to ' + esc(l.name) : 'Money comes from ' + esc(l.name) + ' to you'}">${owe ? you + arrow + them : them + arrow + you}</div>
+        <div class="progress"><span style="width:${pct}%"></span></div><div class="loan-meta"><span>${tk(repaid)} of ${tk(l.original)} repaid (${pct}%)</span></div>
+        <div class="two"><button class="btn" data-repay="${l.id}">Repay</button><button class="btn ghost" data-sheet="type:${owe ? 'borrow' : 'lend'}">${owe ? 'Borrow more' : 'Lend more'}</button></div></section>
+      ${isWide() ? '</div><div class="col">' : ''}<section class="card timeline"><h2 class="h2">History with ${esc(l.name.split(' ')[0])}</h2><div class="rows">${l.items.slice().reverse().map(i => `<div class="row">${ico(i.a < 0 ? 'check' : owe ? 'in' : 'out')}<div class="row-main"><span class="row-title">${esc(i.t)}</span><span class="row-sub">${i.d} · ${esc(i.acct)}</span></div><div class="row-amt num">${i.a < 0 ? '−' : '+'}${tk(i.a)}</div></div>`).join('')}</div></section>${isWide() ? '</div></div>' : ''}</div>`;
+  }
+
+  function stats() {
+    const max = Math.max(...CAT_SPEND.map(c => c.v)), total = CAT_SPEND.reduce((s, c) => s + c.v, 0);
+    const bars = CAT_SPEND.map(c => { const cat = CATS[c.k], name = c.name || cat.name, col = cat ? slotVar(cat.slot) : 'var(--c-other)';
+      return `<div class="cat-bar" data-tip="<b>${esc(name)}</b><br>${tk(c.v)} · ${Math.round(c.v / total * 100)}% of spending"><span class="name"><span class="swatch" style="background:${col}"></span>${esc(name)}</span><span class="amt num">${tk(c.v)}<small>${Math.round(c.v / total * 100)}%</small></span><span class="trackline"><span style="width:${c.v / max * 100}%;background:${col}"></span></span></div>`; }).join('');
+    const insights = `<div class="insights">
+      <div class="insight">You spent <b>${tk(MONTH.lastMonthSpent - MONTH.spent)}</b> less than October so far.</div>
+      <div class="insight">Food & Groceries is <b>up 26%</b> on October.</div>
+      <div class="insight">Fees cost you <b>${tk(640)}</b> this month, mostly bKash cash out.</div></div>`;
+    const cats = `<section class="card"><div class="card-head"><h2 class="h2">Where your money went</h2><span class="muted num">${tk(total)}</span></div><div class="cat-bars">${bars}</div></section>`;
+    const heat = `<section class="card"><div class="card-head"><h2 class="h2">Spending by day</h2><span class="muted">November</span></div>${heatmap()}</section>`;
+    const charts = `<section class="card"><div class="card-head"><h2 class="h2">Income and spending</h2><span class="muted">last 6 months</span></div>${barChart()}<div class="legend"><span><i class="box" style="background:var(--bar)"></i>Income</span><span><i class="box" style="background:var(--bar-2)"></i>Spending</span></div></section>
+      <section class="card"><div class="card-head"><h2 class="h2">Money and net worth</h2><span class="muted">12 months</span></div>${lineChart()}<div class="legend"><span><i style="background:var(--bar)"></i>Money I have</span><span><i style="background:repeating-linear-gradient(90deg,var(--bar-2) 0 5px,transparent 5px 8px)"></i>Net worth</span></div></section>`;
+    const head = `<header class="top"><div><p class="eyebrow">November 2026</p><h1 class="h1">Stats</h1></div></header><div class="filters"><button class="filter" aria-pressed="true">This month</button><button class="filter" aria-pressed="false">Last month</button><button class="filter" aria-pressed="false">This year</button><button class="filter" aria-pressed="false">Custom</button></div>`;
+    if (isXL()) return `<div class="screen">${head}${insights}<div class="wide-grid three"><div class="col">${cats}</div><div class="col">${charts}</div><div class="col">${heat}</div></div></div>`;
+    if (isWide()) return `<div class="screen">${head}${insights}<div class="wide-grid"><div class="col">${charts}</div><div class="col">${cats}${heat}</div></div></div>`;
+    return `<div class="screen">${head}${insights}${cats}${charts}${heat}</div>`;
+  }
+
+  function barChart() {
+    const W = 320, H = 170, L = 34, B = 22, T = 8, max = 90000, ih = H - B - T, gw = (W - L) / MONTHS6.length, bw = 13;
+    const y = v => T + ih - v / max * ih;
+    let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Income and spending, June to November">`;
+    [0, 30000, 60000, 90000].forEach(t => { s += `<line x1="${L}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t ? t / 1000 + 'k' : '0'}</text>`; });
+    MONTHS6.forEach((m, i) => { const cx = L + gw * i + gw / 2;
+      const bar = (v, x, col) => { const top = y(v), h = T + ih - top; return `<path d="M${x} ${T + ih}V${top + 4}a4 4 0 0 1 4-4h${bw - 8}a4 4 0 0 1 4 4V${T + ih}z" fill="${col}"/>`; };
+      s += `<g data-tip="<b>${m.m}${m.partial ? ' (so far)' : ''}</b><br>Income ${tk(m.inc)}<br>Spending ${tk(m.out)}">${bar(m.inc, cx - bw - 1, 'var(--bar)')}${bar(m.out, cx + 1, 'var(--bar-2)')}<rect x="${cx - gw / 2}" y="${T}" width="${gw}" height="${ih}" fill="transparent"/></g><text x="${cx}" y="${H - 6}" text-anchor="middle">${m.m}</text>`; });
+    return s + '</svg>';
+  }
+
+  function lineChart() {
+    const W = 320, H = 170, L = 46, B = 22, T = 10, R = 8, lo = 150000, hi = 450000, ih = H - B - T, iw = W - L - R, n = TREND.labels.length;
+    const x = i => L + iw * i / (n - 1), y = v => T + ih - (v - lo) / (hi - lo) * ih;
+    const path = arr => arr.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+    let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Money I have and net worth over 12 months" id="trend">`;
+    [200000, 300000, 400000].forEach(t => { s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t / 100000} lakh</text>`; });
+    [0, 3, 6, 9, 11].forEach(i => { s += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${TREND.labels[i]}</text>`; });
+    s += `<path d="${path(TREND.have)}" fill="none" stroke="var(--bar)" stroke-width="2" stroke-linejoin="round"/>`;
+    s += `<path d="${path(TREND.net)}" fill="none" stroke="var(--bar-2)" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round"/>`;
+    s += `<circle cx="${x(n - 1)}" cy="${y(TREND.have[n - 1])}" r="4" fill="var(--bar)" stroke="var(--surface)" stroke-width="2"/><circle cx="${x(n - 1)}" cy="${y(TREND.net[n - 1])}" r="4" fill="var(--bar-2)" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<g id="cross" visibility="hidden"><line id="cross-l" y1="${T}" y2="${T + ih}" stroke="var(--faint)" stroke-dasharray="3 3"/><circle id="cross-a" r="4" fill="var(--bar)" stroke="var(--surface)" stroke-width="2"/><circle id="cross-b" r="4" fill="var(--bar-2)" stroke="var(--surface)" stroke-width="2"/></g>`;
+    TREND.labels.forEach((m, i) => { const w = iw / (n - 1); s += `<rect class="hit" data-i="${i}" x="${x(i) - w / 2}" y="${T}" width="${w}" height="${ih}" fill="transparent" data-tip="<b>${m} ${i ? '2026' : '2025'}</b><br>Money I have ${tk(TREND.have[i])}<br>Net worth ${tk(TREND.net[i])}" data-cx="${x(i)}" data-ya="${y(TREND.have[i])}" data-yb="${y(TREND.net[i])}"/>`; });
+    return s + '</svg>';
+  }
+
+  function heatmap() {
+    const max = Math.max(...DAILY), bin = v => v === 0 ? 0 : v < 500 ? 1 : v < 1200 ? 2 : v < 2500 ? 3 : 4;
+    const dows = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    let s = `<div class="heat" role="img" aria-label="Daily spending for November, highest on 13 November (${tk(3500)})">${dows.map(d => `<span class="dow">${d}</span>`).join('')}<span></span>`; // 1 Nov is a Sunday
+    for (let d = 1; d <= 30; d++) { const v = DAILY[d - 1];
+      if (v === undefined) { s += `<span class="cell future">${d}</span>`; continue; }
+      const b = bin(v); s += `<span class="cell" style="background:var(--heat-${b});color:${b >= 3 ? 'var(--surface)' : 'var(--ink)'}" data-tip="<b>${d} Nov</b><br>Spent ${tk(v)}">${d}</span>`; }
+    return s + `</div><div class="heat-legend"><span>Less</span>${[1, 2, 3, 4].map(b => `<i style="background:var(--heat-${b})"></i>`).join('')}<span>More</span><span style="margin-left:auto">Busiest: 13 Nov, ${tk(3500)} (shoes)</span></div>`;
+  }
+
+  function accounts() {
+    if (S.account) return accountDetail(acct(S.account));
+    const groups = ['bank', 'wallet', 'cash', 'card', 'savings'];
+    return `<div class="screen"><header class="top"><div><p class="eyebrow">${ACCOUNTS.length} accounts</p><h1 class="h1">Accounts</h1></div><button class="btn small ghost">${icon('plus')} Add</button></header>
+      <section class="hero"><p class="hero-label">Money I have</p><p class="hero-amount num">${tk(moneyTotal())}</p><p class="hero-sub">Dollars counted at $1 = ৳${RATE.toFixed(2)} · automatic · updated today</p></section>
+      <div class="${isWide() ? 'grid-auto' : 'col'}">${groups.map(g => { const items = ACCOUNTS.filter(a => a.type === g); const sum = items.reduce((s, a) => s + inBDT(a), 0);
+        return `<div class="col" style="gap:8px"><div class="group-head"><span>${TYPE_INFO[g].label}</span><span class="num">${money(sum)}</span></div><section class="card" style="padding-block:4px"><div class="rows">${items.map(a => `<button class="row acct-row" data-account="${a.id}">${ico(TYPE_INFO[a.type].icon, a.slot)}<span class="row-main"><span class="row-title">${esc(a.name)}</span><span class="row-sub">${a.note ? esc(a.note) : a.cur === 'USD' ? '≈ ' + tk(inBDT(a)) : TYPE_INFO[a.type].label}</span></span><span class="row-amt num ${a.bal < 0 ? 'neg' : ''}">${a.cur === 'USD' ? usd(a.bal) : money(a.bal)}${a.type === 'card' ? '<small>owed on card</small>' : ''}</span></button>`).join('')}</div></section></div>`; }).join('')}
+      <section class="card"><div class="card-head"><h2 class="h2">Settings</h2></div><div class="rows">
+        <div class="row"><span class="row-main"><span class="row-title" style="font-weight:500">Style</span><span class="row-sub">Colour, or Ink (black and white)</span></span><div class="seg"><button data-set-style="colour" aria-pressed="${S.style === 'colour'}">Colour</button><button data-set-style="ink" aria-pressed="${S.style === 'ink'}">Ink</button></div></div>
+        <div class="row"><span class="row-main"><span class="row-title" style="font-weight:500">Theme</span><span class="row-sub">Light, dark, or follow the device</span></span><div class="seg"><button data-set-theme="light" aria-pressed="${S.theme === 'light'}">Light</button><button data-set-theme="dark" aria-pressed="${S.theme === 'dark'}">Dark</button><button data-set-theme="system" aria-pressed="${S.theme === 'system'}">Auto</button></div></div>
+        ${['Categories', 'Dollar rate: automatic', 'Recovery: admin can help', 'Recently deleted', 'Number format: ৳1,00,000'].map(t => `<div class="row"><span class="row-main"><span class="row-title" style="font-weight:500">${t}</span></span>${icon('chev')}</div>`).join('')}</div></section></div>`;
+  }
+
+  function accountDetail(a) {
+    const list = ENTRIES.filter(e => e.acct === a.id || e.to === a.id);
+    return `<div class="screen"><button class="back" data-back="account">${icon('back')} Accounts</button>
+      <section class="card" style="gap:6px">${ico(TYPE_INFO[a.type].icon, a.slot)}<p class="muted" style="margin:6px 0 0">${esc(a.name)} · ${TYPE_INFO[a.type].label}</p>
+        <p class="hero-amount num ${a.bal < 0 ? 'neg' : ''}" style="margin:0">${a.cur === 'USD' ? usd(a.bal) : money(a.bal)}</p>
+        ${a.cur === 'USD' ? `<p class="hint">≈ ${tk(inBDT(a))} at $1 = ৳${RATE.toFixed(2)}</p>` : ''}
+        <div class="two" style="margin-top:10px"><button class="btn" data-sheet="type:expense">Add entry</button><button class="btn ghost" data-sheet="correct:${a.id}">Correct balance</button></div></section>
+      <section class="card"><h2 class="h2">History</h2><div class="rows">${list.length ? list.map(row).join('') : '<p class="muted">No entries this month.</p>'}</div></section></div>`;
+  }
+
+  // ---------- Add sheet ----------
+  const TYPES = [
+    ['expense', 'Expense', 'out', 'Money spent'], ['income', 'Income', 'in', 'Salary, other'], ['transfer', 'Transfer', 'transfer', 'Between accounts'],
+    ['lend', 'Lend', 'out', 'Give a loan'], ['borrow', 'Borrow', 'in', 'Take a loan'], ['repay', 'Repay', 'check', 'Pay back or get back'],
+  ];
+  const MORE = [['exchange', 'Exchange', 'swap', '৳ and $'], ['correct', 'Correction', 'scale', 'Fix a balance'], ['writeoff', 'Write off', 'gift', 'Forgive a loan']];
+  function sheetHTML() {
+    const s = S.sheet; if (!s) return '';
+    let body = '';
+    if (s.kind === 'pick') {
+      body = `<div class="sheet-head"><h2 class="h2">What happened?</h2><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
+        <div class="type-grid">${TYPES.map(([k, l, ic, sub]) => `<button class="type-btn" data-sheet="type:${k}">${icon(ic)}${l}<small>${sub}</small></button>`).join('')}</div>
+        <p class="type-sub">More</p><div class="type-grid">${MORE.map(([k, l, ic, sub]) => `<button class="type-btn" data-sheet="${k === 'correct' ? 'correct:bkash' : 'type:' + k}">${icon(ic)}${l}<small>${sub}</small></button>`).join('')}</div>`;
+    } else if (s.kind === 'correct') {
+      const a = acct(s.id);
+      body = `<div class="sheet-head"><h2 class="h2">Correct balance</h2><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
+        <p class="hint">The app says <b>${esc(a.name)}</b> has <b class="num">${money(a.bal)}</b>. Type what it really has. The difference is recorded as a correction and is not counted as spending.</p>
+        <div class="amount-input"><span>৳</span><input id="f-amt" inputmode="decimal" value="${a.bal - 250}" aria-label="Real balance"></div>
+        <p class="hint" id="corr-diff">Correction: −৳250</p><button class="btn block" data-save="correction" data-acct="${a.id}">Save correction</button>`;
+    } else {
+      const t = s.type, label = { expense: 'Expense', income: 'Income', transfer: 'Transfer', lend: 'Lend', borrow: 'Borrow', repay: 'Repay', exchange: 'Currency exchange', writeoff: 'Write off' }[t];
+      const acctOpts = sel => ACCOUNTS.map(a => `<option value="${a.id}" ${a.id === sel ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
+      const people = LOANS.filter(l => l.dir !== 'settled' || t !== 'repay');
+      const repayLoan = s.loan ? LOANS.find(l => l.id === s.loan) : null;
+      let fields = '';
+      if (t === 'expense' || t === 'income') {
+        const keys = t === 'expense' ? ['food', 'transport', 'eating', 'bills', 'clothing', 'mobile', 'health', 'fees'] : ['salary', 'freelance'];
+        fields = `<div class="field"><label>Category</label><div class="cat-pick" id="cat-pick">${keys.map((k, i) => `<button data-cat="${k}" aria-pressed="${i === 0}"><span class="swatch" style="width:8px;height:8px;border-radius:2px;background:${slotVar(CATS[k].slot)}"></span>${CATS[k].name}</button>`).join('')}</div></div>
+          <div class="two"><div class="field"><label for="f-acct">${t === 'expense' ? 'Paid from' : 'Received into'}</label><select id="f-acct">${acctOpts(t === 'expense' ? 'bkash' : 'city')}</select></div><div class="field"><label for="f-date">Date</label><input id="f-date" type="date" value="2026-11-15"></div></div>
+          <div class="field"><label for="f-note">Note (optional)</label><input id="f-note" placeholder="${t === 'expense' ? 'e.g. Shoes, Bata' : 'e.g. November salary'}"></div>`;
+      } else if (t === 'transfer' || t === 'exchange') {
+        fields = `<div class="two"><div class="field"><label for="f-acct">From</label><select id="f-acct">${acctOpts(t === 'exchange' ? 'usd' : 'bkash')}</select></div><div class="field"><label for="f-to">To</label><select id="f-to">${acctOpts(t === 'exchange' ? 'city' : 'wallet')}</select></div></div>
+          ${t === 'exchange' ? '<div class="field"><label for="f-recv">Amount received (৳)</label><input id="f-recv" inputmode="decimal" placeholder="e.g. 12,240"></div>' : ''}
+          <div class="field"><label for="f-fee">Fee (optional)</label><input id="f-fee" inputmode="decimal" placeholder="e.g. 18.50 per ৳1,000 cash out"></div>`;
+      } else if (t === 'lend' || t === 'borrow' || t === 'repay' || t === 'writeoff') {
+        fields = `<div class="field"><label for="f-person">${t === 'lend' ? 'Lend to' : t === 'borrow' ? 'Borrow from' : 'Loan with'}</label><select id="f-person">${people.map(l => `<option value="${l.id}" ${repayLoan && repayLoan.id === l.id ? 'selected' : ''}>${esc(l.name)}${l.left ? ` (${l.dir === 'owe' ? 'you owe' : 'owes you'} ${tk(l.left)})` : ' (settled)'}</option>`).join('')}<option>+ New person or organization…</option></select></div>
+          ${t === 'writeoff' ? '<p class="hint">Clears what is left on this loan and records it as an expense (Written-off Loans), or as a gift if you choose.</p>' : `<div class="two"><div class="field"><label for="f-acct">${t === 'lend' || (t === 'repay' && (!repayLoan || repayLoan.dir === 'owe')) ? 'From account' : 'Into account'}</label><select id="f-acct">${acctOpts('bkash')}</select></div><div class="field"><label for="f-date">Date</label><input id="f-date" type="date" value="2026-11-15"></div></div>`}
+          ${t === 'repay' ? '<div class="field"><label for="f-int">Of which interest (optional)</label><input id="f-int" inputmode="decimal" placeholder="For bank EMIs"></div>' : ''}`;
+      }
+      const preset = repayLoan ? repayLoan.left : '';
+      body = `<div class="sheet-head"><button class="back" data-sheet="pick">${icon('back')} ${label}</button><button class="icon-btn" data-close aria-label="Close">${icon('x')}</button></div>
+        ${repayLoan ? `<p class="hint">${repayLoan.dir === 'owe' ? `You owe ${esc(repayLoan.name)} ${tk(repayLoan.left)}. Pay part or all of it.` : `${esc(repayLoan.name)} owes you ${tk(repayLoan.left)}. Record what they paid back.`}</p>` : ''}
+        ${t === 'writeoff' ? '' : `<div class="amount-input"><span>${t === 'exchange' ? '$' : '৳'}</span><input id="f-amt" inputmode="decimal" placeholder="0" value="${preset}" aria-label="Amount"></div>`}
+        ${fields}<button class="btn block" data-save="${t}">${t === 'writeoff' ? 'Write off' : 'Save'}</button>`;
+    }
+    return `<div class="sheet-wrap ${isWide() ? 'center' : ''}" data-scrim><div class="sheet" role="dialog" aria-modal="true" aria-label="Add entry">${isWide() ? '' : '<span class="grab"></span>'}${body}</div></div>`;
+  }
+
+  function save(t, btn) {
+    const amt = parseFloat(($('#f-amt')?.value || '0').replace(/,/g, '')) || 0;
+    const a = $('#f-acct')?.value;
+    if (t !== 'writeoff' && t !== 'correction' && amt <= 0) { toast('Enter an amount first'); $('#f-amt')?.focus(); return; }
+    const id = Date.now(), date = $('#f-date')?.value || '2026-11-15', note = $('#f-note')?.value?.trim();
+    let msg = 'Saved';
+    if (t === 'expense' || t === 'income') {
+      const cat = $('#cat-pick [aria-pressed="true"]')?.dataset.cat;
+      ENTRIES.unshift({ id, date, type: t, title: note || CATS[cat].name, cat, acct: a, amount: amt });
+      acct(a).bal += t === 'expense' ? -amt : amt;
+      if (t === 'expense') MONTH.spent += amt; else MONTH.income += amt;
+      msg = `Saved ${t === 'expense' ? '−' : '+'}${tk(amt)} · ${CATS[cat].name}`;
+    } else if (t === 'transfer') {
+      const to = $('#f-to').value, fee = parseFloat($('#f-fee').value) || 0;
+      ENTRIES.unshift({ id, date, type: 'transfer', title: 'Transfer', acct: a, to, amount: amt, fee });
+      acct(a).bal -= amt + fee; acct(to).bal += amt; msg = `Moved ${tk(amt)} to ${acct(to).name}`;
+    } else if (t === 'correction') {
+      const ac = acct(btn.dataset.acct), diff = amt - ac.bal;
+      ENTRIES.unshift({ id, date: '2026-11-15', type: 'correction', title: 'Balance correction', acct: ac.id, amount: diff });
+      ac.bal = amt; msg = `${ac.name} corrected by ${money(diff, true)}`;
+    } else if (t === 'repay') {
+      const l = LOANS.find(x => x.id === $('#f-person').value);
+      if (!l || !l.left) { toast('That loan is already settled'); return; }
+      if (amt > l.left) { toast(`That's more than the ${tk(l.left)} left on this loan`); return; }
+      const out = l.dir === 'owe';
+      ENTRIES.unshift({ id, date, type: out ? 'repay-out' : 'repay-in', title: out ? `Repaid ${l.name}` : `${l.name} repaid`, person: l.id, acct: a, amount: amt });
+      acct(a).bal += out ? -amt : amt; l.left -= amt; l.items.push({ d: '15 Nov', t: out ? 'You repaid' : `${l.name} repaid`, a: -amt, acct: (out ? 'from ' : 'into ') + acct(a).name });
+      if (!l.left) l.dir = 'settled';
+      msg = l.left ? `${tk(l.left)} left with ${l.name}` : `${l.name}: settled ✓`;
+    } else { msg = 'This form is a preview only'; }
+    S.sheet = null; render(); toast(msg);
+  }
+
+  // ---------- Login / setup ----------
+  const brand = `<div class="brand"><span class="brand-mark">৳</span>Money Manager</div>`;
+  function authWide(panelTop, panelList, form) {
+    return `<div class="auth-split"><aside class="auth-panel">${brand}${panelTop}<ul class="auth-points">${panelList}</ul></aside><div class="auth-form">${form}</div></div>`;
+  }
+  function login() {
+    const card = loginCard();
+    if (!isWide()) return `<div class="auth"><div class="brand" style="justify-content:center;padding:0"><span class="brand-mark">৳</span>Money Manager</div>${card}</div>`;
+    return authWide('<h2>Your money, in one calm place.</h2>',
+      `<li>${icon('wallet')}<span><b>Every account together</b>Banks, bKash, cash and cards, in taka and dollars.</span></li>
+       <li>${icon('loans')}<span><b>Loans you can't forget</b>See who owes whom at a glance.</span></li>
+       <li>${icon('lock')}<span><b>Private by design</b>Encrypted on your device. The server can't read it.</span></li>`, card);
+  }
+  function loginCard() {
+    return `<div class="auth-card"><h1 class="h1" style="font-size:22px">Log in</h1>
+        <div class="field"><label for="l-user">Username</label><input id="l-user" autocomplete="username" placeholder="e.g. ayesha"></div>
+        <div class="field"><label for="l-pass">Password</label><input id="l-pass" type="password" autocomplete="current-password" placeholder="Your password"></div>
+        <button class="btn block" data-set-mode="app">Log in</button>
+        <details><summary class="link" style="cursor:pointer">Forgot password?</summary><div class="hint" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+          <span><b>Have your recovery key?</b> Use it to set a new password yourself.</span><span><b>Chose "the admin can help"?</b> Ask the admin for a temporary password.</span></div></details>
+        <p class="lockline">${icon('lock')}<span>Your data is encrypted on this device before it is sent. The server can't read it.</span></p></div>`;
+  }
+  const SETUP_STEPS = [['Choose your password', 'Only you know it'], ['Recovery', 'If you forget your password'], ['Start date', 'When you start recording'], ['Your accounts', 'Banks, wallets, cash, cards'], ['Existing loans', 'Who owes whom today']];
+  function setup() {
+    const card = setupCard();
+    if (!isWide()) return `<div class="auth"><div class="steps" aria-label="Step 2 of 5">${[0, 1, 2, 3, 4].map(i => `<span class="${i <= 1 ? 'on' : ''}"></span>`).join('')}</div>${card}</div>`;
+    return authWide('<h2>Let\'s set up your money.</h2>',
+      SETUP_STEPS.map(([t, d], i) => `<li class="${i < 1 ? 'done' : i === 1 ? 'current' : ''}"><span class="n">${i < 1 ? '✓' : i + 1}</span><span><b>${t}</b>${d}</span></li>`).join(''), card);
+  }
+  function setupCard() {
+    const step = S.setupStep, rec = S.recovery;
+    if (step === 0) return `<div class="auth-card"><p class="eyebrow">Step 2 of 5</p><h1 class="h1" style="font-size:22px">If you forget your password</h1>
+      <p class="hint">Your money is locked with your password. Choose how you want to get back in if you forget it.</p>
+      <button class="choice" data-rec="admin" aria-pressed="${rec === 'admin'}"><span class="t">The admin can help me <span class="chip">Recommended for family</span></span><span class="d">The admin can give you a new password and nothing is lost. This also means the admin can technically read your data.</span></button>
+      <button class="choice" data-rec="me" aria-pressed="${rec === 'me'}"><span class="t">Only I can recover</span><span class="d">Nobody else can ever read your data. You will need your recovery key.</span></button>
+      ${rec === 'me' ? '<p class="warnline">If you lose both your password and your recovery key, your data is gone for good.</p>' : ''}
+      <button class="btn block" data-setup-next>Continue</button></div>`;
+    return `<div class="auth-card"><p class="eyebrow">Step 2 of 5</p><h1 class="h1" style="font-size:22px">Your recovery key</h1>
+      <p class="hint">Write this down or print it, and keep it somewhere safe. It's shown only once. ${rec === 'admin' ? 'It lets you reset your password without the admin.' : 'It is the only way back in if you forget your password.'}</p>
+      <div class="keybox num" aria-label="Recovery key (sample)"><span>K7QM</span><span>2WXA</span><span>9HDT</span><span>P4RE</span><span>VN6B</span><span>3JUC</span><span>Y8LF</span><span>Q5SG</span></div>
+      <button class="btn block" data-setup-done>I've written it down</button></div>`;
+  }
+
+  // ---------- Shell ----------
+  const NAV = [['home', 'Home', 'home'], ['history', 'History', 'list'], ['loans', 'Loans', 'loans'], ['stats', 'Stats', 'chart'], ['accounts', 'Accounts', 'wallet']];
+  const isWide = () => S.view === 'wide' && window.innerWidth >= 760;
+  const isXL = () => isWide() && window.innerWidth >= 1280;
+  function shell() {
+    const screens = { home, history: historyScreen, loans, stats, accounts };
+    const content = screens[S.screen]();
+    if (isWide()) return `<nav class="side" aria-label="Main"><div class="brand"><span class="brand-mark">৳</span>Money Manager</div>
+      ${NAV.map(([k, l, ic]) => `<button class="side-link" data-go="${k}" aria-current="${S.screen === k ? 'page' : 'false'}">${icon(ic)}${l}</button>`).join('')}
+      <button class="btn side-add" data-sheet="pick">${icon('plus')} Add</button></nav><main>${content}</main>`;
+    const tabs = NAV.filter(n => n[0] !== 'accounts');
+    return `<main>${content}</main><nav class="tabbar" aria-label="Main">${tabs.slice(0, 2).map(tab).join('')}<button class="tab-add" data-sheet="pick" aria-label="Add entry">${icon('plus')}</button>${tabs.slice(2).map(tab).join('')}</nav>`;
+  }
+  const tab = ([k, l, ic]) => `<button class="tab" data-go="${k}" aria-current="${S.screen === k ? 'page' : 'false'}">${icon(ic)}${l}</button>`;
+
+  function render() {
+    const root = document.documentElement;
+    root.dataset.style = S.style;
+    if (S.theme === 'system') delete root.dataset.theme; else root.dataset.theme = S.theme;
+    document.querySelectorAll('[data-set-style]').forEach(b => b.setAttribute('aria-pressed', b.dataset.setStyle === S.style));
+    document.querySelectorAll('[data-set-theme]').forEach(b => b.setAttribute('aria-pressed', b.dataset.setTheme === S.theme));
+    document.querySelectorAll('[data-set-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.setView === S.view));
+    document.querySelectorAll('.mock-bar [data-set-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.setMode === S.mode));
+    $('#grp-view').hidden = window.innerWidth < 760;
+    const stage = $('#stage'), wide = isWide();
+    stage.className = 'stage ' + (wide ? 'wide' : 'phone') + (!wide && window.innerWidth >= 520 ? ' framed' : '') + (S.mode !== 'app' ? ' auth-mode' : '');
+    $('#app').innerHTML = S.mode === 'login' ? login() : S.mode === 'setup' ? setup() : shell();
+    $('#sheet-root').innerHTML = sheetHTML();
+    const q = $('#q'); if (q && S.focusSearch) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  }
+
+  let toastTimer;
+  function toast(msg) { $('#toast-root').innerHTML = `<div class="toast" role="status">${icon('check')}${esc(msg)}</div>`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast-root').innerHTML = ''; }, 2600); }
+
+  // ---------- Events ----------
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-scrim], .row[data-account]'); if (!t) return;
+    const d = t.dataset;
+    if (d.setStyle) { S.style = d.setStyle; store.set('mm-style-v2', S.style); }
+    else if (d.setTheme) { S.theme = d.setTheme; store.set('mm-theme', S.theme); }
+    else if (d.setView) { S.view = d.setView; store.set('mm-view', S.view); }
+    else if (d.setMode) { S.mode = d.setMode; S.setupStep = 0; }
+    else if (d.go) { S.screen = d.go; S.loan = null; S.account = null; if (d.tab) S.loanTab = d.tab; history_(d.go); window.scrollTo(0, 0); }
+    else if (d.loan) { S.screen = 'loans'; S.loan = d.loan; window.scrollTo(0, 0); }
+    else if (d.account) { S.screen = 'accounts'; S.account = d.account; history_('accounts'); window.scrollTo(0, 0); }
+    else if (d.back === 'loan') S.loan = null;
+    else if (d.back === 'account') S.account = null;
+    else if (d.loantab) S.loanTab = d.loantab;
+    else if (d.filter) { S.filter = d.filter; S.focusSearch = false; }
+    else if (d.repay) S.sheet = { kind: 'type', type: 'repay', loan: d.repay };
+    else if (d.sheet) { const [k, v] = d.sheet.split(':'); S.sheet = k === 'pick' ? { kind: 'pick' } : k === 'correct' ? { kind: 'correct', id: v } : { kind: 'type', type: v }; }
+    else if ('close' in d || ('scrim' in d && e.target === t)) S.sheet = null;
+    else if (d.cat) { t.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === t)); return; }
+    else if (d.save) { save(d.save, t); return; }
+    else if (d.rec) S.recovery = d.rec;
+    else if ('setupNext' in d) S.setupStep = 1;
+    else if ('setupDone' in d) { S.mode = 'app'; S.screen = 'home'; toast('Setup saved. Next: add your accounts'); }
+    else return;
+    render();
+  });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'q') { S.query = e.target.value; S.focusSearch = true; render(); }
+    if (e.target.id === 'f-amt' && $('#corr-diff')) { const a = acct(S.sheet.id), v = parseFloat(e.target.value.replace(/,/g, '')) || 0; $('#corr-diff').textContent = 'Correction: ' + money(v - a.bal, true); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.sheet) { S.sheet = null; render(); } });
+  function history_(screen) { try { history.replaceState(null, '', '#' + screen); } catch {} }
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (NAV.some(n => n[0] === h)) { S.screen = h; S.loan = S.account = null; render(); } });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+
+  // Tooltip + line-chart crosshair
+  const tip = $('#tip');
+  document.addEventListener('pointermove', e => {
+    const el = e.target.closest('[data-tip]');
+    const cross = $('#cross');
+    if (!el) { tip.hidden = true; if (cross) cross.setAttribute('visibility', 'hidden'); return; }
+    tip.innerHTML = el.dataset.tip; tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY - h - 12;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - 14; if (y < 8) y = e.clientY + 16;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    if (cross) { if (el.classList.contains('hit')) { cross.setAttribute('visibility', 'visible');
+        $('#cross-l').setAttribute('x1', el.dataset.cx); $('#cross-l').setAttribute('x2', el.dataset.cx);
+        $('#cross-a').setAttribute('cx', el.dataset.cx); $('#cross-a').setAttribute('cy', el.dataset.ya);
+        $('#cross-b').setAttribute('cx', el.dataset.cx); $('#cross-b').setAttribute('cy', el.dataset.yb); }
+      else cross.setAttribute('visibility', 'hidden'); }
+  });
+  document.addEventListener('pointerleave', () => { tip.hidden = true; });
+  document.addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+
+  render();
+})();
+</script>
+
+<script>
+// Card contrast dial: recomputes the background and card colours from the current style and theme.
+(() => {
+  const NAMES = ['Today', 'Soft', 'Medium', 'Clear', 'Strong', 'Very strong'];
+  const LIGHT = { bg: [0, 3, 5, 7, 9, 11], edge: [0, 0.05, 0.07, 0.1, 0.13, 0.16],
+    drop: ['', '0 1px 2px rgba(16,24,40,.04)', '0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.03)', '0 2px 6px rgba(16,24,40,.07)', '0 3px 10px rgba(16,24,40,.09)', '0 4px 14px rgba(16,24,40,.11)'] };
+  const DARK = { bg: [0, 15, 25, 35, 45, 55], surface: [0, 1.5, 3, 4.5, 6, 7.5], edge: [0, 0.04, 0.06, 0.08, 0.1, 0.12] };
+  const root = document.documentElement;
+  const dial = document.getElementById('cx');
+  const VARS = ['--bg', '--surface', '--surface-2', '--cx-edge', '--cx-drop'];
+  const hex = (h) => { h = h.trim().replace('#', ''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
+  const toHex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const mix = (a, b, pct) => toHex(hex(a).map((v, i) => v + (hex(b)[i] - v) * (pct / 100)));
+  const lum = (h) => { const [r, g, b] = hex(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  let busy = false;
+  function apply() {
+    if (busy) return; busy = true;
+    try {
+      const k = Number(dial.value);
+      try { localStorage.setItem('mm-contrast-mock', String(k)); } catch {}
+      VARS.forEach((v) => root.style.removeProperty(v));
+      const cs = getComputedStyle(root);
+      const base = { bg: cs.getPropertyValue('--bg'), surface: cs.getPropertyValue('--surface'), s2: cs.getPropertyValue('--surface-2'), ink: cs.getPropertyValue('--ink') };
+      const dark = lum(base.bg) < 0.2;
+      let bg = base.bg.trim(), surface = base.surface.trim();
+      if (dark) {
+        bg = mix(base.bg, '#000000', DARK.bg[k]);
+        surface = mix(base.surface, '#ffffff', DARK.surface[k]);
+        root.style.setProperty('--bg', bg);
+        root.style.setProperty('--surface', surface);
+        root.style.setProperty('--surface-2', mix(base.s2, '#ffffff', DARK.surface[k]));
+        root.style.setProperty('--cx-edge', `rgba(255,255,255,${DARK.edge[k]})`);
+      } else {
+        bg = mix(base.bg, base.ink, LIGHT.bg[k]);
+        root.style.setProperty('--bg', bg);
+        root.style.setProperty('--cx-edge', `rgba(16,24,40,${LIGHT.edge[k]})`);
+        if (LIGHT.drop[k]) root.style.setProperty('--cx-drop', LIGHT.drop[k]);
+      }
+      document.getElementById('cx-name').textContent = `${k} · ${NAMES[k]}`;
+      document.getElementById('cx-ratio').textContent = `card vs background ${ratio(surface, bg).toFixed(2)} : 1`;
+    } finally { busy = false; }
+  }
+  try { const saved = localStorage.getItem('mm-contrast-mock'); if (saved !== null) dial.value = saved; } catch {}
+  dial.addEventListener('input', apply);
+  new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-style', 'data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
+  apply();
+})();
+</script>
