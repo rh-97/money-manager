@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { derivePasswordKeys, randomId, type api } from '@mm/shared';
 import { changePassword, changeRecovery, MIN_PASSWORD } from '../lib/auth.ts';
 import { fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
@@ -34,26 +34,35 @@ function Seg<T extends string>({ value, options, onChange, label }: { value: T; 
 export function SettingsScreen() {
   const { ledger, wide, save, session, logout, lock } = useApp();
   const s = ledger.settings;
-  const update = (patch: Partial<Settings>) => ledger.settingsId && save([{ id: ledger.settingsId, type: 'settings', value: { ...s, ...patch } }]);
+  // Quick taps in a row (e.g. style, then theme) are merged, so the second doesn't undo the first.
+  const pending = useRef<Partial<Settings>>({});
+  const update = (patch: Partial<Settings>) => {
+    if (!ledger.settingsId) return;
+    pending.current = { ...pending.current, ...patch };
+    const value = { ...s, ...pending.current };
+    void save([{ id: ledger.settingsId, type: 'settings', value }]).finally(() => {
+      for (const k of Object.keys(patch) as (keyof Settings)[]) if (pending.current[k] === patch[k]) delete pending.current[k];
+    });
+  };
 
   const look = (
     <Section title="Look">
       <div className="rows">
-        <div className="row">
+        <div className="row setting-row">
           <span className="row-main">
             <span className="row-title">Style</span>
             <span className="row-sub">Colour, or Ink (black and white)</span>
           </span>
           <Seg label="Style" value={s.style} options={[['colour', 'Colour'], ['ink', 'Ink']]} onChange={(v) => void update({ style: v })} />
         </div>
-        <div className="row">
+        <div className="row setting-row">
           <span className="row-main">
             <span className="row-title">Theme</span>
             <span className="row-sub">Light, dark, or follow the device</span>
           </span>
           <Seg label="Theme" value={s.theme} options={[['light', 'Light'], ['dark', 'Dark'], ['system', 'Auto']]} onChange={(v) => void update({ theme: v })} />
         </div>
-        <div className="row">
+        <div className="row setting-row">
           <span className="row-main">
             <span className="row-title">Number format</span>
             <span className="row-sub">{s.numberFormat === 'bd' ? '৳1,00,000 (lakh)' : '৳100,000'}</span>
@@ -156,11 +165,12 @@ function DollarRate() {
         </button>
       ) : null}
       <form className="inline-form" onSubmit={(e) => void useOwn(e)}>
-        <Field label="Use my own rate (৳ per $)" htmlFor="own-rate" hint="For example what your bank or money changer actually gives you.">
+        <Field label="Use my own rate (৳ per $)" htmlFor="own-rate">
           <input id="own-rate" inputMode="decimal" value={own} onChange={(e) => setOwn(e.target.value)} placeholder="e.g. 123.50" />
         </Field>
         <button className="btn small" type="submit">Use</button>
       </form>
+      <p className="hint" style={{ marginTop: -4 }}>For example what your bank or money changer actually gives you.</p>
       {error && <p className="error-text">{error}</p>}
     </Section>
   );
@@ -184,7 +194,9 @@ function Categories() {
 
   return (
     <Section title="Categories">
-      <Seg label="Kind" value={kind} options={[['expense', 'Spending'], ['income', 'Income']]} onChange={setKind} />
+      <div>
+        <Seg label="Kind" value={kind} options={[['expense', 'Spending'], ['income', 'Income']]} onChange={setKind} />
+      </div>
       <div className="rows">
         {list.map(([id, c]) => (
           <div key={id} className="row">

@@ -37,6 +37,8 @@ export class Vault {
   private ledger: (Ledger & { settingsId: string | null }) | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private pulling: Promise<void> | null = null;
+  /** Saves run one after another, so a quick second change builds on the first instead of conflicting with it. */
+  private saving: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly dataKey: Uint8Array) {}
 
@@ -131,7 +133,13 @@ export class Vault {
   };
 
   /** Saves changes together. Throws ConflictError if another device changed any of them first. */
-  async save(changes: Change[]): Promise<void> {
+  save(changes: Change[]): Promise<void> {
+    const run = this.saving.then(() => this.saveNow(changes));
+    this.saving = run.catch(() => {});
+    return run;
+  }
+
+  private async saveNow(changes: Change[]): Promise<void> {
     const batch = changes.map((c) => {
       const base = this.records.get(c.id)?.version ?? 0;
       if ('delete' in c) return { id: c.id, baseVersion: base, delete: true as const };
