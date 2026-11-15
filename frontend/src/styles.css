@@ -111,7 +111,18 @@ button { cursor: pointer; }
 .side-link { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; background: transparent; border-radius: var(--r-sm); text-align: left; color: var(--muted); font-weight: 500; }
 .side-link:hover { background: var(--surface-2); color: var(--ink); }
 .side-link[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-.side-add { margin-top: 12px; }
+.side-add { margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.side-toggle { margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); display: grid; place-items: center; flex: none; }
+.side-toggle:hover { background: var(--surface-2); color: var(--ink); }
+.side-toggle svg { width: 18px; height: 18px; }
+.stage.wide .app { transition: grid-template-columns .18s ease; }
+.stage.wide.nav-collapsed .app { grid-template-columns: 56px minmax(0, 1fr); }
+.nav-collapsed .side-label { display: none; }
+.nav-collapsed .brand { flex-direction: column; gap: 10px; padding: 6px 0 14px; }
+.nav-collapsed .side-toggle { margin: 0; }
+.nav-collapsed .side-link { justify-content: center; padding: 10px 0; }
+.nav-collapsed .side-add { padding-inline: 0; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .stage.wide .app { transition: none; } }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neg); margin-left: auto; }
 
 /* Bottom tab bar (phone) */
@@ -255,6 +266,9 @@ details.settled summary::-webkit-details-marker { display: none; }
 /* Accounts page */
 .group-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 2px 0; }
 .acct-row { border: 0; background: none; width: 100%; text-align: left; }
+/* Account groups on wide screens: wider cards, and long account names wrap instead of being cut off. */
+.grid-auto.acct-groups { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+.acct-row .row-title { white-space: normal; overflow-wrap: anywhere; }
 .acct-row.picked { background: var(--surface-2); border-radius: var(--r-md); }
 .pick-box { width: 22px; height: 22px; flex: none; border: 2px solid var(--line-strong, var(--muted)); border-radius: 7px; display: grid; place-items: center; }
 .acct-row.picked .pick-box { background: var(--accent, var(--ink)); border-color: var(--accent, var(--ink)); color: var(--on-accent, var(--surface)); }

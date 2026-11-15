@@ -193,6 +193,23 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
   const [add, setAdd] = useState<AddPreset | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ConflictError | null>(null);
+  // Wide screens: the side menu can shrink to icons. Remembered on this device only.
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('mm-nav-collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleNav = () =>
+    setNavCollapsed((v) => {
+      try {
+        localStorage.setItem('mm-nav-collapsed', v ? '0' : '1');
+      } catch {
+        /* storage blocked */
+      }
+      return !v;
+    });
   const [recoveryKeyNotice] = useState(unlocked.recoveryKey);
   const today = todayDhaka();
 
@@ -273,21 +290,35 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
   const nav = setupStep > 0 ? null : wide ? (
     <nav className="side" aria-label="Main">
       <div className="brand">
-        <span className="brand-mark">৳</span>Money Manager
+        <span className="brand-mark">৳</span>
+        <span className="side-label">Money Manager</span>
+        <button
+          className="side-toggle"
+          onClick={toggleNav}
+          aria-expanded={!navCollapsed}
+          aria-label={navCollapsed ? 'Expand the menu' : 'Collapse the menu'}
+          data-tip={navCollapsed ? 'Expand the menu' : 'Collapse the menu'}
+        >
+          <Icon name={navCollapsed ? 'chev' : 'back'} />
+        </button>
       </div>
-      {NAV.map(([p, label, icon]) => (
-        <button key={p} className="side-link" aria-current={section === p ? 'page' : 'false'} onClick={() => go(p)}>
+      {[...NAV, ['/settings', 'Settings', 'settings'] as [string, string, string]].map(([p, label, icon]) => (
+        <button
+          key={p}
+          className="side-link"
+          aria-current={section === p ? 'page' : 'false'}
+          aria-label={navCollapsed ? label : undefined}
+          data-tip={navCollapsed ? label : undefined}
+          onClick={() => go(p)}
+        >
           <Icon name={icon} />
-          {label}
+          <span className="side-label">{label}</span>
           {p === '/loans' && overdueDot && <span className="dot" />}
         </button>
       ))}
-      <button className="side-link" aria-current={section === '/settings' ? 'page' : 'false'} onClick={() => go('/settings')}>
-        <Icon name="settings" />
-        Settings
-      </button>
-      <button className="btn side-add" onClick={() => setAdd({})}>
-        <Icon name="plus" /> Add
+      <button className="btn side-add" onClick={() => setAdd({})} aria-label={navCollapsed ? 'Add' : undefined} data-tip={navCollapsed ? 'Add' : undefined}>
+        <Icon name="plus" />
+        <span className="side-label">Add</span>
       </button>
     </nav>
   ) : null;
@@ -301,7 +332,7 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className={`stage ${setupStep > 0 ? (wide ? '' : 'phone') : wide ? 'wide' : 'phone'}`}>
+      <div className={`stage ${setupStep > 0 ? (wide ? '' : 'phone') : wide ? `wide${navCollapsed ? ' nav-collapsed' : ''}` : 'phone'}`}>
         <div className="app">
           {nav}
           <main>{screen}</main>

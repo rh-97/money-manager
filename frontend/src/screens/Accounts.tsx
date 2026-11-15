@@ -136,7 +136,7 @@ export function AccountsScreen() {
           </div>
         </section>
       )}
-      <div className={wide ? 'grid-auto' : 'col'}>
+      <div className={wide ? 'grid-auto acct-groups' : 'col'}>
         {MONEY_TYPES.map(([type, label]) => {
           const items = visible.filter(([, a]) => a.type === type);
           if (!items.length) return null;
