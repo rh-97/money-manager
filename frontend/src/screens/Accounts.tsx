@@ -6,6 +6,7 @@ import type { Account, Currency, LoanAccountType, MoneyAccountType } from '../mo
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { ACCOUNT_ICONS, Chip, Icon } from '../ui/icons.tsx';
 import { Field, Secret, Sheet, useReveal, useRevealSet } from '../ui/kit.tsx';
+import { PinCard } from './AccountsPin.tsx';
 
 export const MONEY_TYPES: [MoneyAccountType, string][] = [
   ['bank', 'Bank'],
@@ -25,9 +26,10 @@ export const LOAN_TYPES: [LoanAccountType, string][] = [
 export const typeLabel = (a: Account): string => (a.kind === 'money' ? MONEY_TYPES : LOAN_TYPES).find(([t]) => t === a.type)?.[1] ?? 'Other';
 
 export function AccountsScreen() {
-  const { ledger, today, wide, go } = useApp();
+  const { ledger, today, wide, go, lockAccounts } = useApp();
   const bals = useBalances();
   const [adding, setAdding] = useState(false);
+  const hasPin = Boolean(ledger.settings.accountsPin);
   const [showArchived, setShowArchived] = useState(false);
   // Totals stay hidden until the top card is tapped, so nobody sees them over your shoulder.
   const [showTotals, toggleTotals] = useReveal();
@@ -66,7 +68,14 @@ export function AccountsScreen() {
     <div className="screen">
       <header className="top">
         <div>
-          <p className="eyebrow">{money.length} accounts</p>
+          <div className="eyebrow-row">
+            <p className="eyebrow">{money.length} accounts</p>
+            {hasPin && (
+              <button className="lock-now" onClick={lockAccounts} aria-label="Lock Accounts now">
+                <Icon name="lock" /> Lock
+              </button>
+            )}
+          </div>
           <h1 className="h1">Accounts</h1>
         </div>
         <div className="list-actions" style={{ margin: 0 }}>
@@ -220,6 +229,7 @@ export function AccountsScreen() {
           {showArchived ? 'Hide' : 'Show'} {archivedCount} archived
         </button>
       )}
+      {!picking && <PinCard />}
       {adding && <AccountSheet kind="money" onClose={() => setAdding(false)} />}
     </div>
   );

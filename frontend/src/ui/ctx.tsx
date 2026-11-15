@@ -31,6 +31,11 @@ export interface AppCtxValue {
   logout: () => void;
   /** Locks the app on this device now; the password is needed again. */
   lock: () => void;
+  /** Accounts tab PIN (spec 3.5): true while the right PIN has been entered and Accounts is open. */
+  accountsOpen: boolean;
+  openAccounts: () => void;
+  /** Locks the Accounts tab again (only matters when a PIN is set). */
+  lockAccounts: () => void;
 }
 
 export const AppCtx = createContext<AppCtxValue | null>(null);

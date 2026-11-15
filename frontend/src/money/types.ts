@@ -88,6 +88,8 @@ export interface Settings {
   setupStep: number; // 0 = done; otherwise the next step of first-time setup to show
   /** The day the user started recording (setup step 3); default start date for new accounts. */
   startDate?: string;
+  /** Accounts tab PIN: a keyed check value (see pinCheck) and the PIN's length. Absent = no PIN. */
+  accountsPin?: { check: string; length: number };
   createdAt: string;
 }
 

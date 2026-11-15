@@ -57,6 +57,16 @@ export function derivedId(dataKey: Uint8Array, label: string): string {
   return s().to_hex(s().crypto_generichash(16, s().from_string(`mm-id-v1:${label}`), dataKey));
 }
 
+/**
+ * The check value stored for the Accounts PIN (spec section 3.5). Keyed with the data
+ * key, so the same PIN gives a different value for every user, and it is stored only
+ * inside the user's encrypted settings. It keeps people who borrow an unlocked phone
+ * out of the Accounts tab; it is not an encryption key.
+ */
+export function pinCheck(dataKey: Uint8Array, pin: string): string {
+  return toB64(s().crypto_generichash(32, s().from_string(`mm-pin-v1:${pin}`), dataKey));
+}
+
 // ---------- Password to keys ----------
 
 export interface KdfParams {

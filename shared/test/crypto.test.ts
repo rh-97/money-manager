@@ -14,6 +14,7 @@ import {
   openLockbox,
   randomId,
   derivedId,
+  pinCheck,
   sealForAdmin,
   sealLockbox,
   toB64,
@@ -142,6 +143,16 @@ describe('derived ids', () => {
     expect(derivedId(a, 'settings')).not.toBe(derivedId(a, 'category:0'));
     expect(derivedId(a, 'settings')).not.toBe(derivedId(newDataKey(), 'settings'));
     expect(derivedId(a, 'settings')).toMatch(/^[a-f0-9]{32}$/);
+  });
+});
+
+describe('Accounts PIN check', () => {
+  it('matches only the same PIN and data key', () => {
+    const a = newDataKey();
+    expect(pinCheck(a, '4821')).toBe(pinCheck(a, '4821'));
+    expect(pinCheck(a, '4821')).not.toBe(pinCheck(a, '4822'));
+    expect(pinCheck(a, '4821')).not.toBe(pinCheck(a, '48210'));
+    expect(pinCheck(a, '4821')).not.toBe(pinCheck(newDataKey(), '4821'));
   });
 });
 

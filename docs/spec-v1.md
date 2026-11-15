@@ -167,7 +167,20 @@ Without the data key, data can't be recovered by anyone, so every user picks how
 - **Staying unlocked:** after unlocking, a device stays unlocked for **one hour after its last use**, so reloading doesn't ask for the password every time. The browser keeps the data key locked with a random device key, and only the server keeps that device key, deleting it when the hour is up, on **Lock now**, or on log out. Neither half is enough alone: the server never sees the locked data key, and the browser's copy can't be opened once the hour is up. Within the hour, someone with the unlocked device can open the app without the password, just as they could use an open tab.
 - Metadata (3.1) is not encrypted.
 
-### 3.5 Building it properly
+### 3.5 Accounts PIN
+
+The Accounts tab can be locked with a **PIN**, so friends or family using the owner's unlocked phone can't look at their accounts.
+
+- **Set it up** at the bottom of the Accounts tab: **Set a PIN**, 4 to 8 digits, typed twice. **Change PIN** and **Turn off** ask for the current PIN.
+- **When it asks:** every time the Accounts tab or an account's page is opened. Once the right PIN is entered, Accounts stays open until the user goes to another tab, the app goes to the background, 5 minutes pass without use, or the user taps **Lock** at the top of the page.
+- **Entering it:** a number keypad on phones; the PIN is checked as soon as the last digit is typed.
+- **Wrong tries:** the first 5 wrong tries in a row are free. After that, each wrong try means a wait before the next one: 30 seconds, then 1, 2, 4… minutes, up to 15 minutes. The count is kept on the device, so reloading doesn't reset it.
+- **Forgot the PIN:** the user's password opens Accounts and turns the PIN off; they can then set a new one.
+- **One PIN for all devices:** it is saved in the user's encrypted settings (10), so it applies on every device they use.
+- **Stored safely:** only a check value is stored, made from the PIN and the user's data key, and it sits inside the encrypted settings. The server never sees the PIN.
+- **What it is not:** a screen lock, not encryption. Accounts' data is already decrypted on the unlocked device, as on every other page. The PIN keeps the Accounts tab closed. Other pages still show what they always show: Home shows the accounts counted in its total, so accounts the user wants fully private should be left out of the Home total or have their balance hidden (4.1).
+
+### 3.6 Building it properly
 
 - **Only standard, well-reviewed cryptography.** Nothing home-made. Current choices:
   - **libsodium** for encryption and key pairs
@@ -478,7 +491,7 @@ Lending, borrowing and repaying the loan amount are transfers, so they are **not
 | **Home** | **Money I have** (money accounts counted in the Home total, in BDT) · **Net worth** (money I have + owed to me − I owe, counting only loans shown on Home) · **Loans card** (7.8) · the balances of accounts counted in the Home total (tap to open) · if a counted account hides its balance, the Home totals show dots until tapped · this month's income vs. spending · recurring entries waiting to be confirmed *(extra 2, later)* · last 10 entries |
 | **Add entry (＋)** | First choose a type (Expense · Income · Transfer · Lend · Borrow · Repay · More…), then a short form for that type. Quick-add favourites appear on top *(extra 1, later)*. Opens as a bottom sheet on phones and a dialog on PC. |
 | **History** | All entries, newest first, grouped by day · search by note or amount · filter by date range, type, account (money or loan), category, tag · totals for the filtered set · export *(extra 5, later)* |
-| **Accounts** | **Money accounts only.** **All my money**: the grand total of every money account, shown as dots until the card is tapped, with a total per type inside it · accounts grouped by type, each group with its total (always shown, but leaving out hidden balances — "+ 1 hidden" — until they're tapped open) · balances hidden per account until tapped (4.1); shown amounts hide again after 30 seconds · **Add up**: pick accounts or whole groups to see their combined total, for that view only · add / edit / archive · account detail shows that account's own history and a **Correct balance** button |
+| **Accounts** | **Money accounts only.** **All my money**: the grand total of every money account, shown as dots until the card is tapped, with a total per type inside it · accounts grouped by type, each group with its total (always shown, but leaving out hidden balances — "+ 1 hidden" — until they're tapped open) · balances hidden per account until tapped (4.1); shown amounts hide again after 30 seconds · **Add up**: pick accounts or whole groups to see their combined total, for that view only · add / edit / archive · account detail shows that account's own history and a **Correct balance** button · **PIN lock** (3.5): set, change or turn off at the bottom of the page; when on, the tab and every account page ask for the PIN, and **Lock** at the top locks it again |
 | **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with progress bars (loans kept off Home are marked "not on Home"), the Settled list, and loan account pages (7.8) · **Existing loan** adds a loan owed from before, without moving money |
 | **Stats** | Charts (section 12), with a period picker: this month, last month, this year, custom |
 | **Settings** | Look: style (Colour / Ink), theme (light / dark / auto) and number format · Categories · dollar rate (automatic / my own) · display name and password · **Recovery** (mode, new personal recovery key; asks for the password) · **Lock now** and **Log out** · **Recently deleted** · **Setup** (sharing, the access log, tags, favourites, recurring entries and export arrive with their extras) |
@@ -566,7 +579,7 @@ None of these are in version 1. They'll be chosen once version 1 is in use.
 
 ### 15.1 Stack
 
-All choices are **current preferences, not fixed**. Any of them may be replaced during implementation with a better-fitting, standard and well-maintained alternative (see 3.5).
+All choices are **current preferences, not fixed**. Any of them may be replaced during implementation with a better-fitting, standard and well-maintained alternative (see 3.6).
 
 The **frontend and backend are separate applications**, like an Angular + Spring Boot stack. They talk only through the HTTP API. Both use TypeScript, so the encryption code and record definitions can be shared through a common package instead of being written twice.
 
@@ -699,7 +712,7 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 - **end-to-end encryption:** data is encrypted in the browser, the server stores only encrypted records, and all calculations run in the browser (section 3)
 - **recovery:** each user chooses *admin can recover* (via the admin recovery phrase) or *only I can recover* (personal recovery key) (3.3)
 - **sync:** online-only in v1, with versioned records and a "changed on another device" choice for conflicts (section 10)
-- **tools are flexible:** named libraries and algorithms may be replaced during implementation with standard, well-maintained alternatives (3.5, 15.1)
+- **tools are flexible:** named libraries and algorithms may be replaced during implementation with standard, well-maintained alternatives (3.6, 15.1)
 - sharing moves to **extra 10**, and offline use is **extra 11**
 - the dollar rate is automatic, with an optional own rate (9.1)
 - no admin screens in v1: users are managed with a command-line tool on the VM (2.1). In-app admin mode moves to **extra 8** (2.2).
@@ -718,7 +731,7 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **Architecture:** frontend and backend split into separate folders in one repo (React + Vite static app, Fastify API, shared package), replacing the single Next.js app (15.1, 15.5). **Hosting:** uses the VM's existing nginx instead of Caddy, with the backend in Docker; VM details recorded (15.4); VM dedicated to this app. **Access:** public web address with hardening; Tailscale moves to extra 12. |
 | 15 Nov 2026 | **VM cleaned up:** old demo removed; placeholder nginx site installed; certificate renewal verified (15.4). |
 | 15 Nov 2026 | **UI (M0):** mockup approved with changes: Colour style is the default with Ink switchable in Settings; wide screens use the full width; split login and setup on wide screens (14). |
-| 15 Nov 2026 | **Built (M1-M5) and deployed** to https://138-2-66-148.sslip.io. Implementation choices within the spec's flexibility clause (3.5, 15.1): libsodium 0.8 (0.7's ESM build is broken); Node's built-in SQLite with plain SQL migrations instead of Drizzle (no native modules on the ARM VM); auth written in the backend instead of Better Auth (it had to fit the two-key login); the approved mockup's CSS reused instead of Tailwind/shadcn; the backend is bundled into one file and run in the official Node image, so no custom Docker image is needed. Added: an **Unlock** screen, because after a reload the session is still valid but the data key, kept in memory only, must be re-derived from the password; and ids derived from the data key for default records, to prevent duplicates. Backups are nightly on the VM; Google Drive is pending the owner's sign-in. |
+| 15 Nov 2026 | **Built (M1-M5) and deployed** to https://138-2-66-148.sslip.io. Implementation choices within the spec's flexibility clause (3.6, 15.1): libsodium 0.8 (0.7's ESM build is broken); Node's built-in SQLite with plain SQL migrations instead of Drizzle (no native modules on the ARM VM); auth written in the backend instead of Better Auth (it had to fit the two-key login); the approved mockup's CSS reused instead of Tailwind/shadcn; the backend is bundled into one file and run in the official Node image, so no custom Docker image is needed. Added: an **Unlock** screen, because after a reload the session is still valid but the data key, kept in memory only, must be re-derived from the password; and ids derived from the data key for default records, to prevent duplicates. Backups are nightly on the VM; Google Drive is pending the owner's sign-in. |
 | 15 Nov 2026 | **Stay unlocked for an hour** (3.4), at the owner's request: reloading no longer asks for the password within an hour of the last use. Added **Lock now** in Settings. Changing the recovery choice now asks for the password. |
 | 15 Nov 2026 | **Two kinds of totals**, at the owner's request: Home counts only accounts marked "include in total"; the Accounts page shows the grand total of all money accounts and a total per account type (4.1). |
 | 15 Nov 2026 | **Hide amounts from onlookers**, at the owner's request: the Accounts page's totals show dots until the top card is tapped, and each money account can **hide its balance** until tapped (4.1). Shown amounts hide again after 30 seconds. Stats charts are not hidden. |
@@ -729,3 +742,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **Admin recovery phrase** set up by the owner (3.3). The README was rewritten for new readers, with screenshots of the design mockup in `docs/screenshots/`. |
 | 15 Nov 2026 | **Wide screens:** the sidebar can be collapsed to icons (11); account group cards on the Accounts page are at least 420 px wide and long account names wrap instead of being cut off. |
 | 15 Nov 2026 | **UI fixes:** icons and text in buttons are centred; Settings' choice switches (style, theme, number format, category kind) were unstyled and are now pill switches with the chosen option in the accent colour; buttons beside an input match its height; long names in Home's loan cards are cut off with "…" instead of spilling out. **Saves run one at a time**, and quick settings changes are merged, so tapping two options in a row no longer shows a false "Changed on another device" dialog (10). |
+| 15 Nov 2026 | **Accounts PIN** (3.5), at the owner's request: the Accounts tab can be locked with a 4 to 8 digit PIN, asked for every time it's opened, with waits after repeated wrong tries and the password as a way back in. |

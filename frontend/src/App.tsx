@@ -18,6 +18,7 @@ import { AccountDetail, AccountsScreen } from './screens/Accounts.tsx';
 import { StatsScreen } from './screens/Stats.tsx';
 import { SettingsScreen } from './screens/Settings.tsx';
 import { SetupDataScreen } from './screens/SetupData.tsx';
+import { AccountsLockScreen } from './screens/AccountsPin.tsx';
 import { AddSheet } from './screens/AddSheet.tsx';
 import { EntrySheet } from './screens/EntrySheet.tsx';
 
@@ -175,6 +176,9 @@ function usePath(): [string, (p: string) => void] {
   return [path, go];
 }
 
+/** The Accounts tab locks again after this long without use (when a PIN is set). */
+const ACCOUNTS_IDLE_MS = 5 * 60_000;
+
 const NAV: [string, string, string][] = [
   ['/', 'Home', 'home'],
   ['/history', 'History', 'list'],
@@ -211,6 +215,30 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
       return !v;
     });
   const [recoveryKeyNotice] = useState(unlocked.recoveryKey);
+  // Accounts PIN (spec 3.5): opened by the right PIN, locked again on leaving the tab,
+  // when the app goes to the background, or after 5 idle minutes.
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const inAccounts = path === '/accounts' || path.startsWith('/accounts/');
+  useEffect(() => {
+    if (!inAccounts) setAccountsOpen(false);
+  }, [inAccounts]);
+  useEffect(() => {
+    if (!accountsOpen) return;
+    let idle = setTimeout(() => setAccountsOpen(false), ACCOUNTS_IDLE_MS);
+    const used = () => {
+      clearTimeout(idle);
+      idle = setTimeout(() => setAccountsOpen(false), ACCOUNTS_IDLE_MS);
+    };
+    const hidden = () => document.visibilityState === 'hidden' && setAccountsOpen(false);
+    const events = ['pointerdown', 'keydown', 'wheel'] as const;
+    for (const e of events) window.addEventListener(e, used, { passive: true });
+    document.addEventListener('visibilitychange', hidden);
+    return () => {
+      clearTimeout(idle);
+      for (const e of events) window.removeEventListener(e, used);
+      document.removeEventListener('visibilitychange', hidden);
+    };
+  }, [accountsOpen]);
   const today = todayDhaka();
 
   // Apply the user's look (synced in their settings) and remember it for the login screen.
@@ -268,6 +296,9 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
       vault.stop();
       onLock(session);
     },
+    accountsOpen,
+    openAccounts: () => setAccountsOpen(true),
+    lockAccounts: () => setAccountsOpen(false),
   };
 
   useEffect(() => keepDeviceUnlockedWhileUsed(), []);
@@ -280,6 +311,7 @@ function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked
   else if (path === '/loans') screen = <LoansScreen />;
   else if (path.startsWith('/loans/')) screen = <LoanDetail id={path.slice(7)} />;
   else if (path === '/stats') screen = <StatsScreen />;
+  else if (inAccounts && ledger.settings.accountsPin && !accountsOpen) screen = <AccountsLockScreen />;
   else if (path === '/accounts') screen = <AccountsScreen />;
   else if (path.startsWith('/accounts/')) screen = <AccountDetail id={path.slice(10)} />;
   else if (path === '/settings') screen = <SettingsScreen />;
