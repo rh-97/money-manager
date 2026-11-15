@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { fmtDate, fmtMoney, initials } from '../lib/format.ts';
-import { loanSummary, toBDT, type LoanSummary } from '../money/calc.ts';
+import { accountLabel, groupByPerson, loanSummary, loanTitle, offsetPlan, personKey, toBDT, type LoanSummary } from '../money/calc.ts';
+import { cancelOut } from '../money/actions.ts';
 import type { Account } from '../money/types.ts';
 import { EntryRow, useApp } from '../ui/ctx.tsx';
 import { ACCOUNT_ICONS, Chip, Icon } from '../ui/icons.tsx';
+import { Sheet } from '../ui/kit.tsx';
 import { AccountSheet } from './Accounts.tsx';
 
 interface LoanRow {
@@ -23,21 +25,24 @@ function useLoans(): LoanRow[] {
   );
 }
 
-function LoanCard({ row }: { row: LoanRow }) {
+function LoanCard({ row, grouped }: { row: LoanRow; grouped?: boolean }) {
   const { go, openAdd } = useApp();
   const { id, a, s } = row;
   const pct = s.cycleAmount ? Math.round((s.repaid / s.cycleAmount) * 100) : 0;
   const owe = s.status === 'owe';
+  // Headline: what the loan is for. The person goes underneath, unless the group heading already names them.
+  const sub = [
+    a.purpose?.trim() && !grouped ? a.name : '',
+    s.openItems[0] ? `since ${fmtDate(s.openItems[0].date, { day: 'numeric', month: 'short', year: 'numeric' })}` : '',
+    a.includeInTotal ? '' : 'not on Home',
+  ].filter(Boolean);
   return (
     <article className="loan-card">
       <button className="loan-top" onClick={() => go(`/loans/${id}`)}>
         <Chip icon={ACCOUNT_ICONS[a.type] ?? 'person'} />
         <span className="row-main">
-          <span className="row-title">{a.name}</span>
-          <span className="row-sub">
-            {s.openItems[0] ? `since ${fmtDate(s.openItems[0].date, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
-            {!a.includeInTotal && (s.openItems[0] ? ' · ' : '') + 'not on Home'}
-          </span>
+          <span className="row-title">{loanTitle(a)}</span>
+          <span className="row-sub">{sub.join(' · ')}</span>
         </span>
         <span className={`row-amt num ${owe ? 'neg' : 'pos'}`}>
           {fmtMoney(Math.abs(s.balance), a.currency)}
@@ -59,6 +64,13 @@ function LoanCard({ row }: { row: LoanRow }) {
   );
 }
 
+/** "Overall you owe Rafi ৳4,000" across both directions, in taka. */
+function overallText(name: string, net: number, approx: boolean): string {
+  const amt = (approx ? '≈ ' : '') + fmtMoney(Math.abs(net));
+  if (Math.round(net) === 0) return `Overall you and ${name} are even`;
+  return net < 0 ? `Overall you owe ${name} ${amt}` : `Overall ${name} owes you ${amt}`;
+}
+
 export function LoansScreen() {
   const { ledger, today, wide, openAdd, go } = useApp();
   const loans = useLoans();
@@ -66,12 +78,16 @@ export function LoansScreen() {
   const [tab, setTab] = useState<'owe' | 'owed'>(initialTab);
   // Adding a loan that was already owed: opens with the current tab's direction.
   const [adding, setAdding] = useState<'owe' | 'owed' | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const bdt = (r: LoanRow) => toBDT(ledger, Math.abs(r.s.balance), r.a.currency, today);
   const owe = loans.filter((r) => r.s.status === 'owe' && !r.a.archived);
   const owed = loans.filter((r) => r.s.status === 'owed' && !r.a.archived);
   const settled = loans.filter((r) => r.s.status === 'settled' || r.a.archived);
   const list = (tab === 'owe' ? owe : owed).sort((x, y) => bdt(y) - bdt(x));
   const sum = (rows: LoanRow[]) => rows.reduce((s, r) => s + bdt(r), 0);
+  // Every open loan, by person, to find loans in the other direction and what can be cancelled out.
+  const openByPerson = new Map(groupByPerson([...owe, ...owed]).map((g) => [g.key, g.rows]));
+  const groups = groupByPerson(list).sort((x, y) => sum(y.rows) - sum(x.rows));
 
   return (
     <div className="screen">
@@ -95,10 +111,41 @@ export function LoansScreen() {
         </button>
       </div>
       {list.length ? (
-        <div className={wide ? 'grid-auto' : 'col'}>
-          {list.map((r) => (
-            <LoanCard key={r.id} row={r} />
-          ))}
+        <div className={wide ? 'grid-auto loan-grid' : 'col'}>
+          {groups.map((g) => {
+            const all = openByPerson.get(g.key) ?? g.rows;
+            const other = all.filter((r) => r.s.status !== (tab === 'owe' ? 'owe' : 'owed'));
+            if (g.rows.length === 1 && !other.length) return <LoanCard key={g.rows[0]!.id} row={g.rows[0]!} />;
+            const net = all.reduce((s, r) => s + toBDT(ledger, r.s.balance, r.a.currency, today), 0);
+            const approx = all.some((r) => r.a.currency === 'USD');
+            const canCancel = offsetPlan(ledger, all.map((r) => r.id)).length > 0;
+            const total = sum(g.rows);
+            return (
+              <section key={g.key} className="loan-group" aria-label={`Loans with ${g.name}`}>
+                <div className="loan-group-head">
+                  <span className="lg-main">
+                    <span className="lg-name">{g.name}</span>
+                    <span className="lg-sub">
+                      {tab === 'owe' ? 'You owe ' : 'Owes you '}
+                      <b className={`num ${tab === 'owe' ? 'neg' : 'pos'}`}>{fmtMoney(total)}</b>
+                      {g.rows.length > 1 ? ` across ${g.rows.length} loans` : ''}
+                    </span>
+                    {other.length > 0 && <span className="lg-sub">{overallText(g.name, net, approx)}</span>}
+                  </span>
+                  {canCancel && (
+                    <button className="btn small ghost" onClick={() => setCancelling(g.key)}>
+                      <Icon name="swap" /> Cancel out
+                    </button>
+                  )}
+                </div>
+                <div className={wide ? 'grid-auto' : 'col'}>
+                  {g.rows.map((r) => (
+                    <LoanCard key={r.id} row={r} grouped />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       ) : (
         <section className="card">
@@ -122,22 +169,87 @@ export function LoansScreen() {
             <Icon name="chev" />
           </summary>
           <div className="rows" style={{ marginTop: 8 }}>
-            {settled.map((r) => (
-              <div key={r.id} className="row">
-                <Chip icon={ACCOUNT_ICONS[r.a.type] ?? 'person'} />
-                <button className="row-main row-btn" onClick={() => go(`/loans/${r.id}`)}>
-                  <span className="row-title">{r.a.name}</span>
-                  <span className="row-sub">{r.a.archived ? 'Archived' : 'Settled ✓ · reuse for a new loan'}</span>
-                </button>
-                <button className="btn small ghost" onClick={() => openAdd({ kind: 'lend', loanId: r.id })}>Lend</button>
-                <button className="btn small ghost" onClick={() => openAdd({ kind: 'borrow', loanId: r.id })}>Borrow</button>
-              </div>
+            {groupByPerson(settled).map((g) => (
+              <Fragment key={g.key}>
+                {g.rows.length > 1 && <p className="settled-person">{g.name} · {g.rows.length} loans</p>}
+                {g.rows.map((r) => (
+                  <div key={r.id} className={`row${g.rows.length > 1 ? ' in-group' : ''}`}>
+                    <Chip icon={ACCOUNT_ICONS[r.a.type] ?? 'person'} />
+                    <button className="row-main row-btn" onClick={() => go(`/loans/${r.id}`)}>
+                      <span className="row-title">{g.rows.length > 1 ? loanTitle(r.a) : accountLabel(r.a)}</span>
+                      <span className="row-sub">{r.a.archived ? 'Archived' : 'Settled ✓ · reuse for a new loan'}</span>
+                    </button>
+                    <button className="btn small ghost" onClick={() => openAdd({ kind: 'lend', loanId: r.id })}>Lend</button>
+                    <button className="btn small ghost" onClick={() => openAdd({ kind: 'borrow', loanId: r.id })}>Borrow</button>
+                  </div>
+                ))}
+              </Fragment>
             ))}
           </div>
         </details>
       )}
       {adding && <AccountSheet kind="loan" initialDirection={adding} onClose={() => setAdding(null)} />}
+      {cancelling && <CancelOutSheet rows={openByPerson.get(cancelling) ?? []} onClose={() => setCancelling(null)} />}
     </div>
+  );
+}
+
+/** Cancels out a person's loans in opposite directions (7.9): shows each loan before and after, then saves. */
+function CancelOutSheet({ rows, onClose }: { rows: LoanRow[]; onClose: () => void }) {
+  const { ledger, today, wide, save } = useApp();
+  const [busy, setBusy] = useState(false);
+  const pairs = offsetPlan(ledger, rows.map((r) => r.id));
+  const name = rows[0]?.a.name.trim() ?? '';
+  const after = new Map(rows.map((r) => [r.id, r.s.balance]));
+  for (const p of pairs) {
+    after.set(p.from, after.get(p.from)! - p.amount);
+    after.set(p.to, after.get(p.to)! + p.amount);
+  }
+  const touched = rows.filter((r) => after.get(r.id) !== r.s.balance);
+  const totals = (['BDT', 'USD'] as const)
+    .map((c) => [c, pairs.filter((p) => p.currency === c).reduce((s, p) => s + p.amount, 0)] as const)
+    .filter(([, v]) => v > 0)
+    .map(([c, v]) => fmtMoney(v, c))
+    .join(' and ');
+  const state = (r: LoanRow, bal: number) => (bal === 0 ? 'settled' : bal < 0 ? `you owe ${fmtMoney(-bal, r.a.currency)}` : `owes you ${fmtMoney(bal, r.a.currency)}`);
+
+  async function confirm() {
+    setBusy(true);
+    const entries = cancelOut(pairs, today);
+    const ok = await save(entries.map((e) => ({ id: e.id, type: 'entry' as const, value: e.value })), `Cancelled out ${totals} with ${name}`);
+    setBusy(false);
+    if (ok) onClose();
+  }
+
+  return (
+    <Sheet title={`Cancel out with ${name}`} onClose={onClose} wide={wide}>
+      {pairs.length ? (
+        <div className="col" style={{ gap: 14 }}>
+          <p className="hint">
+            {totals} is cancelled on both sides. No money changes hands, and nothing counts as spending or income.
+          </p>
+          <div className="rows">
+            {touched.map((r) => (
+              <div key={r.id} className="row">
+                <Chip icon={ACCOUNT_ICONS[r.a.type] ?? 'person'} />
+                <span className="row-main">
+                  <span className="row-title">{loanTitle(r.a)}</span>
+                  <span className="row-sub">
+                    {state(r, r.s.balance)} → <b>{state(r, after.get(r.id)!)}</b>
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="small-muted">Oldest loans are cancelled first. To undo it, delete the "Cancelled out" entry in either loan's history.</p>
+          <button className="btn block" disabled={busy} onClick={() => void confirm()}>
+            Cancel out {totals}
+          </button>
+        </div>
+      ) : (
+        <p className="muted">There's nothing to cancel out with {name} right now.</p>
+      )}
+    </Sheet>
   );
 }
 
@@ -146,6 +258,15 @@ export function LoanDetail({ id }: { id: string }) {
   const a = ledger.accounts.get(id);
   const s = useMemo(() => (a ? loanSummary(ledger, id) : null), [ledger, id, a]);
   const [editing, setEditing] = useState(false);
+  const others = useMemo(
+    () =>
+      a
+        ? [...ledger.accounts]
+            .filter(([oid, o]) => o.kind === 'loan' && oid !== id && !o.archived && personKey(o.name) === personKey(a.name))
+            .map(([oid, o]) => ({ id: oid, a: o, s: loanSummary(ledger, oid) }))
+        : [],
+    [ledger, id, a],
+  );
   if (!a || !s) return <div className="screen"><p className="muted">This loan account no longer exists.</p></div>;
   const owe = s.status === 'owe';
   const left = Math.abs(s.balance);
@@ -212,11 +333,21 @@ export function LoanDetail({ id }: { id: string }) {
         </button>
         <button
           className="btn ghost"
-          onClick={() => void save([{ id, type: 'account', value: { ...a, archived: !a.archived } }], a.archived ? `${a.name} restored` : `${a.name} archived`)}
+          onClick={() => void save([{ id, type: 'account', value: { ...a, archived: !a.archived } }], a.archived ? `${accountLabel(a)} restored` : `${accountLabel(a)} archived`)}
         >
           <Icon name="archive" /> {a.archived ? 'Unarchive' : 'Archive'}
         </button>
       </div>
+      {others.length > 0 && (
+        <div className="also-with">
+          <span className="small-muted">Also with {a.name.trim()}:</span>
+          {others.map((o) => (
+            <button key={o.id} className="link" onClick={() => go(`/loans/${o.id}`)}>
+              {loanTitle(o.a)} ({o.s.status === 'settled' ? 'settled' : o.s.status === 'owe' ? `you owe ${fmtMoney(-o.s.balance, o.a.currency)}` : `owes you ${fmtMoney(o.s.balance, o.a.currency)}`})
+            </button>
+          ))}
+        </div>
+      )}
       {a.phone && <p className="small-muted">Phone: {a.phone}</p>}
       {a.note && <p className="small-muted">{a.note}</p>}
     </section>
@@ -280,6 +411,12 @@ export function LoanDetail({ id }: { id: string }) {
       <button className="back" onClick={() => go('/loans')}>
         <Icon name="back" /> Loans
       </button>
+      <header className="top">
+        <div>
+          <p className="eyebrow">{a.purpose?.trim() ? `Loan with ${a.name.trim()}` : 'Loan'}</p>
+          <h1 className="h1">{loanTitle(a)}</h1>
+        </div>
+      </header>
       {wide ? (
         <div className="wide-grid">
           <div className="col">{summary}{open}</div>

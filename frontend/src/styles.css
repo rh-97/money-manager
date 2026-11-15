@@ -406,3 +406,15 @@ body { margin: 0; }
 .pin-row .row-sub { white-space: normal; }
 .pin-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .stage.phone .pin-card-actions { flex-basis: 100%; padding-left: 52px; }
+
+/* ---------- Loans grouped by person ---------- */
+.loan-group { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--r-lg, 18px); background: var(--surface-2); }
+.loan-grid .loan-group { grid-column: 1 / -1; }
+.loan-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 2px 4px; }
+.lg-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.lg-name { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+.lg-sub { font-size: 13.5px; color: var(--muted); }
+.settled-person { margin: 10px 0 2px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.settled .row.in-group { padding-left: 10px; }
+.also-with { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.rename-ask { flex-wrap: wrap; }

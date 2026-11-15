@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cryptoReady } from '@mm/shared';
-import { balances, dailySpending, insights, loanSummary, monthlySeries, periodStats, rateOn, totals, type Ledger } from './calc.ts';
-import { correction, expenseOrIncome, repay, transfer, writeOff } from './actions.ts';
+import { accountLabel, balances, dailySpending, groupByPerson, insights, loanSummary, loanTitle, monthlySeries, offsetPlan, periodStats, rateOn, totals, type Ledger } from './calc.ts';
+import { cancelOut, correction, expenseOrIncome, repay, transfer, writeOff } from './actions.ts';
 import { DEFAULT_CATEGORIES, defaultSettings } from './defaults.ts';
 import type { Account, Category, Entry } from './types.ts';
 
@@ -212,6 +212,56 @@ describe('loans', () => {
     l.add(transfer(l.categories, { date: '2026-11-01', amount: tk(5000), from: 'city', to: 'rahim', loanAction: 'lend' }));
     l.add(transfer(l.categories, { date: '2026-11-02', amount: tk(9000), from: 'rahim', to: 'city', loanAction: 'borrow' }));
     expect(periodStats(l, '2026-11-01', '2026-11-30')).toMatchObject({ spent: 0, income: 0 });
+  });
+});
+
+describe('loan reasons, people and cancelling out (7.1, 7.9)', () => {
+  const loan = (name: string, startingBalance: number, extra: Partial<Account> = {}) => account({ name, kind: 'loan', type: 'person', startingBalance, ...extra });
+
+  it('shows the reason as the headline and groups loans by person', () => {
+    const fridge = loan('Rafi', tk(-5000), { purpose: 'Fridge' });
+    expect(loanTitle(fridge)).toBe('Fridge');
+    expect(accountLabel(fridge)).toBe('Fridge · Rafi');
+    expect(loanTitle(loan('Rafi', 0))).toBe('Rafi');
+    expect(accountLabel(account({ name: 'City Bank', purpose: 'ignored' }))).toBe('City Bank');
+    const groups = groupByPerson([{ a: fridge }, { a: loan('Karim', 0) }, { a: loan(' rafi ', 0, { purpose: 'Bike' }) }]);
+    expect(groups.map((g) => [g.name, g.rows.length])).toEqual([['Rafi', 2], ['Karim', 1]]);
+  });
+
+  it('cancels the smaller side in full, oldest loans first, without touching money accounts', () => {
+    const l = ledger({
+      city: account({ name: 'City Bank', startingBalance: tk(10000) }),
+      fridge: loan('Rafi', tk(-5000), { purpose: 'Fridge', startDate: '2026-10-01' }), // I owe 5,000
+      phone: loan('Rafi', tk(-1000), { purpose: 'Phone', startDate: '2026-11-05' }), // I owe 1,000
+      bike: loan('Rafi', tk(3000), { purpose: 'Bike', startDate: '2026-10-15' }), // he owes me 3,000
+    });
+    const plan = offsetPlan(l, ['fridge', 'phone', 'bike']);
+    expect(plan).toEqual([{ from: 'bike', to: 'fridge', amount: tk(3000), currency: 'BDT' }]);
+    const entries = cancelOut(plan, '2026-11-16');
+    l.add(entries);
+    expect(loanSummary(l, 'bike').status).toBe('settled');
+    expect(loanSummary(l, 'fridge')).toMatchObject({ balance: tk(-2000), repaid: tk(3000) });
+    expect(loanSummary(l, 'phone').balance).toBe(tk(-1000));
+    expect(balances(l).get('city')).toBe(tk(10000));
+    expect(periodStats(l, '2026-11-01', '2026-11-30')).toMatchObject({ spent: 0, income: 0 });
+    expect(offsetPlan(l, ['fridge', 'phone', 'bike'])).toEqual([]);
+  });
+
+  it('spreads across several loans, links the entries, and never mixes currencies', () => {
+    const l = ledger({
+      a: loan('Rafi', tk(-2000), { startDate: '2026-10-01' }),
+      b: loan('Rafi', tk(-2000), { startDate: '2026-10-02' }),
+      c: loan('Rafi', tk(3000), { startDate: '2026-10-03' }),
+      usd: loan('Rafi', 5000, { currency: 'USD' }),
+    });
+    const plan = offsetPlan(l, ['a', 'b', 'c', 'usd']);
+    expect(plan).toEqual([
+      { from: 'c', to: 'a', amount: tk(2000), currency: 'BDT' },
+      { from: 'c', to: 'b', amount: tk(1000), currency: 'BDT' },
+    ]);
+    const entries = cancelOut(plan, '2026-11-16');
+    expect(entries[1]!.value.parentId).toBe(entries[0]!.id);
+    expect(entries.every((e) => e.value.loanAction === 'offset')).toBe(true);
   });
 });
 

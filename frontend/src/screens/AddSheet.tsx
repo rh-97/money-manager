@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { randomId } from '@mm/shared';
 import { amountInputValue, fmtMoney, parseAmount } from '../lib/format.ts';
-import { effects, loanSummary } from '../money/calc.ts';
+import { accountLabel, effects, loanSummary, personKey } from '../money/calc.ts';
 import { correction, expenseOrIncome, repay, transfer, writeOff, type NewEntry } from '../money/actions.ts';
 import type { Account, Settings } from '../money/types.ts';
 import { useApp, useBalances, type AddKind, type AddPreset, type Change } from '../ui/ctx.tsx';
@@ -97,6 +97,14 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
   const [toAccountId, setToAccountId] = useState<string>((kind === 'exchange' ? firstBdt : money.find(([id]) => id !== accountId)?.[0]) ?? '');
   const [loanId, setLoanId] = useState<string>(preset.loanId ?? (kind === 'repay' || kind === 'writeoff' ? (openLoans[0]?.id ?? '') : (loans[0]?.[0] ?? 'new')));
   const [newLoanName, setNewLoanName] = useState('');
+  const [newLoanPurpose, setNewLoanPurpose] = useState('');
+  // People already in Loans, so a new loan with the same person uses the same spelling (and groups with them).
+  const people = [...new Map(accounts.filter(([, a]) => a.kind === 'loan').map(([, a]) => [personKey(a.name), a.name.trim()])).values()];
+  const newName = () => {
+    const typed = newLoanName.trim().replace(/\s+/g, ' ');
+    return people.find((n) => personKey(n) === personKey(typed)) ?? typed;
+  };
+  const newPurpose = () => newLoanPurpose.trim() || undefined;
   const [newLoanType, setNewLoanType] = useState<Account['type']>('person');
   const [categoryId, setCategoryId] = useState<string>(cats[0]?.[0] ?? '');
   const loanForRepay = openLoans.find((x) => x.id === loanId);
@@ -148,7 +156,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
         if (kind === 'expense' && accountId === NEW_PAYER) {
           if (!newLoanName.trim()) return 'Who paid for it?';
           payFrom = randomId();
-          const value: Account = { kind: 'loan', type: newLoanType, name: newLoanName.trim(), currency: 'BDT', startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
+          const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: 'BDT', startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
           extra.push({ id: payFrom, type: 'account', value });
         }
         return { entries: expenseOrIncome({ kind, date, amount: amt, accountId: payFrom, categoryId, note: note.trim() }), extra };
@@ -177,7 +185,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
           const signed = kind === 'lend' ? amt : -amt;
           if (loanId === 'new') {
             if (!newLoanName.trim()) return kind === 'lend' ? 'Who owes you?' : 'Who do you owe?';
-            const value: Account = { kind: 'loan', type: newLoanType, name: newLoanName.trim(), currency: 'BDT', startingBalance: signed, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
+            const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: 'BDT', startingBalance: signed, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
             return { entries: [], extra: [{ id: randomId(), type: 'account', value }] };
           }
           if (!loan) return 'Choose a loan.';
@@ -188,7 +196,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
         if (loanId === 'new') {
           if (!newLoanName.trim()) return kind === 'lend' ? 'Who are you lending to?' : 'Who are you borrowing from?';
           lid = randomId();
-          const value: Account = { kind: 'loan', type: newLoanType, name: newLoanName.trim(), currency: acct!.currency, startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
+          const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: acct!.currency, startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
           extra.push({ id: lid, type: 'account', value });
         }
         let to: number | undefined;
@@ -331,7 +339,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
                   <optgroup label="Paid by someone else (I'll owe them)">
                     {loans.map(([lid, a]) => (
                       <option key={lid} value={lid}>
-                        {a.name}
+                        {accountLabel(a)}
                       </option>
                     ))}
                     <option value={NEW_PAYER}>+ Someone new…</option>
@@ -346,7 +354,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
           {kind === 'expense' && accountId === NEW_PAYER && (
             <div className="two">
               <Field label="Who paid" htmlFor="f-newloan">
-                <input id="f-newloan" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
+                <input id="f-newloan" list="loan-people" autoComplete="off" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
               </Field>
               <Field label="Type" htmlFor="f-newtype">
                 <select id="f-newtype" value={newLoanType} onChange={(e) => setNewLoanType(e.target.value as Account['type'])}>
@@ -358,9 +366,14 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
               </Field>
             </div>
           )}
+          {kind === 'expense' && accountId === NEW_PAYER && (
+            <Field label="What it's for (optional)" htmlFor="f-purpose" hint="Shown as the loan's name, e.g. two loans with the same person.">
+            <input id="f-purpose" value={newLoanPurpose} onChange={(e) => setNewLoanPurpose(e.target.value)} placeholder="e.g. Fridge" />
+            </Field>
+          )}
           {kind === 'expense' && (accountId === NEW_PAYER || acct?.kind === 'loan') && (
             <p className="hint">
-              It counts as your spending, and you'll owe <b>{accountId === NEW_PAYER ? newLoanName.trim() || 'them' : acct?.name}</b> this amount. None of your accounts changes until you repay.
+              It counts as your spending, and you'll owe <b>{accountId === NEW_PAYER ? newLoanName.trim() || 'them' : acct ? accountLabel(acct) : ''}</b> this amount. None of your accounts changes until you repay.
             </p>
           )}
           {noteField(kind === 'expense' ? 'e.g. Shoes, Bata' : 'e.g. November salary')}
@@ -406,18 +419,18 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
                 const s = loanSummary(ledger, lid);
                 return (
                   <option key={lid} value={lid}>
-                    {a.name}
+                    {accountLabel(a)}
                     {s.status === 'settled' ? ' (settled)' : ` (${s.status === 'owe' ? 'you owe' : 'owes you'} ${fmtMoney(Math.abs(s.balance), a.currency)})`}
                   </option>
                 );
               })}
-              <option value="new">+ New person or organization…</option>
+              <option value="new">+ New loan…</option>
             </select>
           </Field>
           {loanId === 'new' && (
             <div className="two">
-              <Field label="Name" htmlFor="f-newloan">
-                <input id="f-newloan" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
+              <Field label="Who" htmlFor="f-newloan">
+                <input id="f-newloan" list="loan-people" autoComplete="off" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
               </Field>
               <Field label="Type" htmlFor="f-newtype">
                 <select id="f-newtype" value={newLoanType} onChange={(e) => setNewLoanType(e.target.value as Account['type'])}>
@@ -428,6 +441,11 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
                 </select>
               </Field>
             </div>
+          )}
+          {loanId === 'new' && (
+            <Field label="What it's for (optional)" htmlFor="f-purpose" hint="Shown as the loan's name, e.g. two loans with the same person.">
+            <input id="f-purpose" value={newLoanPurpose} onChange={(e) => setNewLoanPurpose(e.target.value)} placeholder="e.g. Fridge" />
+            </Field>
           )}
           <div className="two">
             <Field label={kind === 'lend' ? 'From account' : 'Into account'} htmlFor="f-acct">
@@ -473,7 +491,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
             >
               {openLoans.map((x) => (
                 <option key={x.id} value={x.id}>
-                  {x.a.name} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
+                  {accountLabel(x.a)} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
                 </option>
               ))}
             </select>
@@ -510,7 +528,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
             <select id="f-loan" value={loanId} onChange={(e) => setLoanId(e.target.value)}>
               {openLoans.map((x) => (
                 <option key={x.id} value={x.id}>
-                  {x.a.name} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
+                  {accountLabel(x.a)} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
                 </option>
               ))}
             </select>
@@ -559,6 +577,11 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
   return (
     <form className="col" style={{ gap: 14 }} onSubmit={(e) => void submit(e)}>
       {fields}
+      <datalist id="loan-people">
+        {people.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
       {error && <p className="error-text" role="alert">{error}</p>}
       {warnings && (
         <div className="banner" role="alert">

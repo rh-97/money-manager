@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { amountInputValue, fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
+import { accountLabel } from '../money/calc.ts';
 import type { Entry } from '../money/types.ts';
 import { describeEntry, useApp, type Change } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
@@ -45,13 +46,13 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
             </div>
             <div className="kv">
               <span className="muted">{e.kind === 'transfer' ? 'From' : 'Account'}</span>
-              <span>{acct?.name ?? 'Deleted account'}</span>
+              <span>{acct ? accountLabel(acct) : 'Deleted account'}</span>
             </div>
             {to && (
               <div className="kv">
                 <span className="muted">To</span>
                 <span>
-                  {to.name}
+                  {accountLabel(to)}
                   {e.toAmount ? ` (${fmtMoney(e.toAmount, to.currency)})` : ''}
                 </span>
               </div>
@@ -84,10 +85,13 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
             )}
             {(e.kind === 'transfer' || e.kind === 'correction') && <p className="small-muted">Not counted as spending or income.</p>}
           </div>
-          <div className="two">
-            <button className="btn ghost" onClick={() => setEditing(true)}>
-              <Icon name="edit" /> Edit
-            </button>
+          {e.loanAction === 'offset' && <p className="small-muted">To change a cancel-out, delete it and cancel out again from the Loans page.</p>}
+          <div className={e.loanAction === 'offset' ? '' : 'two'}>
+            {e.loanAction !== 'offset' && (
+              <button className="btn ghost" onClick={() => setEditing(true)}>
+                <Icon name="edit" /> Edit
+              </button>
+            )}
             <button className="btn ghost" onClick={() => void remove()}>
               <Icon name="trash" /> Delete
             </button>
@@ -156,7 +160,7 @@ function EditForm({ id, e, onDone }: { id: string; e: Entry; onDone: () => void 
         <Field label={e.kind === 'transfer' ? 'From' : 'Account'} htmlFor="e-acct">
           <select id="e-acct" value={accountId} onChange={(ev) => setAccountId(ev.target.value)}>
             {sameKindAccounts.map(([aid, a]) => (
-              <option key={aid} value={aid}>{a.name}</option>
+              <option key={aid} value={aid}>{accountLabel(a)}</option>
             ))}
           </select>
         </Field>

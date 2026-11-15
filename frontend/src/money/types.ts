@@ -13,7 +13,10 @@ export type LoanAccountType = 'person' | 'bank' | 'organization' | 'other';
 export interface Account {
   kind: 'money' | 'loan';
   type: MoneyAccountType | LoanAccountType;
+  /** Money accounts: the account's name. Loan accounts: the person or organization. */
   name: string;
+  /** Loan accounts: what the loan is for (e.g. "Fridge"), shown as its headline. */
+  purpose?: string;
   currency: Currency;
   /**
    * Money accounts: the balance on the start date (negative for a credit card that is owed).
@@ -51,7 +54,8 @@ export interface Category {
  * - correction: a signed adjustment to one money account, not counted as spending or income
  */
 export type EntryKind = 'expense' | 'income' | 'transfer' | 'correction';
-export type LoanAction = 'lend' | 'borrow' | 'repay' | 'writeoff';
+/** offset: two loans with the same person in opposite directions cancelled against each other (7.9). */
+export type LoanAction = 'lend' | 'borrow' | 'repay' | 'writeoff' | 'offset';
 
 export interface Entry {
   kind: EntryKind;

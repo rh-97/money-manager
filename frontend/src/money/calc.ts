@@ -297,3 +297,69 @@ export function accountHistory(l: Ledger, accountId: string): IdEntry[] {
     .filter(([, e]) => e.accountId === accountId || e.toAccountId === accountId)
     .reverse();
 }
+
+// ---------- Loan reasons, people and cancelling out (spec 7.1, 7.9) ----------
+
+/** A loan's headline: what it's for, or the person's name when no reason is given. */
+export const loanTitle = (a: Account): string => a.purpose?.trim() || a.name;
+
+/** "Fridge · Rafi" for a loan with a reason; just the name otherwise (and for money accounts). */
+export const accountLabel = (a: Account): string => (a.kind === 'loan' && a.purpose?.trim() ? `${a.purpose.trim()} · ${a.name}` : a.name);
+
+/** Loans are grouped by person: names match ignoring capitals and extra spaces. */
+export const personKey = (name: string): string => name.trim().replace(/\s+/g, ' ').toLowerCase();
+
+export interface PersonGroup<T> {
+  key: string;
+  name: string;
+  rows: T[];
+}
+
+/** Groups rows by the loan's person, keeping the order of each person's first row. */
+export function groupByPerson<T extends { a: Account }>(rows: T[]): PersonGroup<T>[] {
+  const groups = new Map<string, PersonGroup<T>>();
+  for (const r of rows) {
+    const key = personKey(r.a.name);
+    const g = groups.get(key);
+    if (g) g.rows.push(r);
+    else groups.set(key, { key, name: r.a.name.trim(), rows: [r] });
+  }
+  return [...groups.values()];
+}
+
+export interface OffsetPair {
+  /** The loan the person owes me on (its balance goes down). */
+  from: string;
+  /** The loan I owe the person on (what I owe goes down). */
+  to: string;
+  amount: number;
+  currency: Currency;
+}
+
+/**
+ * How to cancel out a person's loans in opposite directions (7.9): the smaller side
+ * is cancelled in full against the other, oldest loans first, one currency at a time.
+ * Returns no pairs when there is nothing to cancel.
+ */
+export function offsetPlan(l: Ledger, loanIds: string[]): OffsetPair[] {
+  const pairs: OffsetPair[] = [];
+  const rows = loanIds
+    .map((id) => ({ id, a: l.accounts.get(id)!, s: loanSummary(l, id) }))
+    .filter((r) => r.a && !r.a.archived && r.s.balance !== 0)
+    .sort((x, y) => (x.s.openItems[0]?.date ?? x.a.startDate).localeCompare(y.s.openItems[0]?.date ?? y.a.startDate));
+  for (const currency of ['BDT', 'USD'] as Currency[]) {
+    const owed = rows.filter((r) => r.a.currency === currency && r.s.balance > 0).map((r) => ({ id: r.id, left: r.s.balance }));
+    const owe = rows.filter((r) => r.a.currency === currency && r.s.balance < 0).map((r) => ({ id: r.id, left: -r.s.balance }));
+    let i = 0;
+    let j = 0;
+    while (i < owed.length && j < owe.length) {
+      const amount = Math.min(owed[i]!.left, owe[j]!.left);
+      pairs.push({ from: owed[i]!.id, to: owe[j]!.id, amount, currency });
+      owed[i]!.left -= amount;
+      owe[j]!.left -= amount;
+      if (owed[i]!.left === 0) i++;
+      if (owe[j]!.left === 0) j++;
+    }
+  }
+  return pairs;
+}

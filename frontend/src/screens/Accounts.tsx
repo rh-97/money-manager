@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { randomId } from '@mm/shared';
 import { amountInputValue, fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
-import { accountHistory, rateOn, toBDT } from '../money/calc.ts';
+import { accountHistory, accountLabel, personKey, rateOn, toBDT } from '../money/calc.ts';
 import type { Account, Currency, LoanAccountType, MoneyAccountType } from '../money/types.ts';
-import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
+import { EntryRow, useApp, useBalances, type Change } from '../ui/ctx.tsx';
 import { ACCOUNT_ICONS, Chip, Icon } from '../ui/icons.tsx';
 import { Field, Secret, Sheet, useReveal, useRevealSet } from '../ui/kit.tsx';
 import { PinCard } from './AccountsPin.tsx';
@@ -327,6 +327,12 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
   const existing = id ? ledger.accounts.get(id) : undefined;
   const hasEntries = id ? [...ledger.entries.values()].some((e) => e.accountId === id || e.toAccountId === id) : false;
   const [name, setName] = useState(existing?.name ?? '');
+  const [purpose, setPurpose] = useState(existing?.purpose ?? '');
+  // Loans: people already in Loans (suggested while typing), and this person's other loans (renamed together).
+  const loanAccounts = [...ledger.accounts].filter(([aid, a]) => a.kind === 'loan' && aid !== id);
+  const people = [...new Map(loanAccounts.map(([, a]) => [personKey(a.name), a.name.trim()])).values()];
+  const samePerson = existing ? loanAccounts.filter(([, a]) => personKey(a.name) === personKey(existing.name)) : [];
+  const [askRename, setAskRename] = useState(false);
   const [type, setType] = useState<string>(existing?.type ?? (kind === 'money' ? 'bank' : 'person'));
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'BDT');
   const [direction, setDirection] = useState<'owed' | 'owe'>(existing ? (existing.startingBalance < 0 ? 'owe' : 'owed') : (initialDirection ?? 'owed'));
@@ -344,9 +350,14 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function submit(e: FormEvent | null, renameAll?: boolean) {
+    e?.preventDefault();
     if (!name.trim()) return setError('Give it a name.');
+    // A typed name that matches someone already in Loans uses their spelling, so the loans group together.
+    const typed = name.trim().replace(/\s+/g, ' ');
+    const finalName = kind === 'loan' ? (people.find((n) => personKey(n) === personKey(typed)) ?? typed) : name.trim();
+    const renamed = kind === 'loan' && existing && personKey(finalName) !== personKey(existing.name);
+    if (renamed && samePerson.length && renameAll === undefined) return setAskRename(true);
     const bal = balance.trim() === '' ? 0 : parseAmount(balance, true);
     if (bal === null) return setError('The balance should be a number, like 15000 or 1250.50.');
     if (kind === 'loan' && bal < 0) return setError('Enter the amount without a minus sign, and choose who owes whom.');
@@ -354,7 +365,8 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
     const value: Account = {
       kind,
       type: type as Account['type'],
-      name: name.trim(),
+      name: finalName,
+      purpose: kind === 'loan' ? purpose.trim() || undefined : undefined,
       currency,
       startingBalance,
       startDate,
@@ -370,7 +382,9 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
     };
     setBusy(true);
     const newId = id ?? randomId();
-    const ok = await save([{ id: newId, type: 'account', value }], id ? 'Saved' : `${value.name} added`);
+    const changes: Change[] = [{ id: newId, type: 'account', value }];
+    if (renamed && renameAll) for (const [oid, o] of samePerson) changes.push({ id: oid, type: 'account', value: { ...o, name: finalName } });
+    const ok = await save(changes, id ? (renamed && renameAll ? `Renamed on ${changes.length} loans` : 'Saved') : `${accountLabel(value)} added`);
     setBusy(false);
     if (ok) {
       onClose();
@@ -389,15 +403,35 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
 
   const types = kind === 'money' ? MONEY_TYPES : LOAN_TYPES;
   return (
-    <Sheet title={id ? `Edit ${existing?.name}` : kind === 'money' ? 'New account' : 'Add an existing loan'} onClose={onClose} wide={wide}>
+    <Sheet title={id ? `Edit ${existing ? accountLabel(existing) : ''}` : kind === 'money' ? 'New account' : 'Add an existing loan'} onClose={onClose} wide={wide}>
       <form className="col" style={{ gap: 12 }} onSubmit={submit}>
         {kind === 'loan' && !id && (
           <p className="hint">
             For money that was already owed before you started recording. No money account changes, so <b>Money I have</b> and the Accounts total stay the same; only the loan totals and net worth include it.
           </p>
         )}
-        <Field label="Name" htmlFor="a-name">
-          <input id="a-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'money' ? 'e.g. City Bank Salary, bKash, Cash (drawer)' : 'e.g. Rahim, BRAC Bank home loan'} autoFocus={!id} />
+        {kind === 'loan' && (
+          <Field label="What it's for (optional)" htmlFor="a-purpose" hint="Shown as the loan's name. Handy when you have more than one loan with the same person.">
+            <input id="a-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="e.g. Fridge, Home loan" autoFocus={!id} />
+          </Field>
+        )}
+        <Field label={kind === 'loan' ? 'Who' : 'Name'} htmlFor="a-name">
+          <input
+            id="a-name"
+            list={kind === 'loan' ? 'a-people' : undefined}
+            autoComplete="off"
+            value={name}
+            onChange={(e) => (setName(e.target.value), setAskRename(false))}
+            placeholder={kind === 'money' ? 'e.g. City Bank Salary, bKash, Cash (drawer)' : 'e.g. Rahim, BRAC Bank'}
+            autoFocus={!id && kind === 'money'}
+          />
+          {kind === 'loan' && (
+            <datalist id="a-people">
+              {people.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          )}
         </Field>
         <div className="two">
           <Field label="Type" htmlFor="a-type">
@@ -484,7 +518,22 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
           </label>
         )}
         {error && <p className="error-text" role="alert">{error}</p>}
-        <button className="btn block" type="submit" disabled={busy}>{id ? 'Save' : 'Add'}</button>
+        {askRename && existing && (
+          <div className="banner rename-ask" role="alert">
+            <span>
+              {existing.name.trim()} has {samePerson.length === 1 ? '1 other loan' : `${samePerson.length} other loans`}. Change the name on all of them?
+            </span>
+            <div className="list-actions" style={{ margin: 0 }}>
+              <button type="button" className="btn small" disabled={busy} onClick={() => void submit(null, true)}>
+                All {samePerson.length + 1} loans
+              </button>
+              <button type="button" className="btn small ghost" disabled={busy} onClick={() => void submit(null, false)}>
+                Only this one
+              </button>
+            </div>
+          </div>
+        )}
+        <button className="btn block" type="submit" disabled={busy || askRename}>{id ? 'Save' : 'Add'}</button>
         {id && !hasEntries && !confirmDelete && (
           <button type="button" className="link" onClick={() => setConfirmDelete(true)}>
             <Icon name="trash" /> Delete this account

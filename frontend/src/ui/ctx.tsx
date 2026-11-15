@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { Session } from '../lib/auth.ts';
 import type { Change, Vault } from '../lib/vault.ts';
-import { balances, type Ledger } from '../money/calc.ts';
+import { accountLabel, balances, loanTitle, type Ledger } from '../money/calc.ts';
 import { fmtMoney } from '../lib/format.ts';
 import type { Entry } from '../money/types.ts';
 import { ACCOUNT_ICONS, Chip } from './icons.tsx';
@@ -57,7 +57,10 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
   const to = e.toAccountId ? l.accounts.get(e.toAccountId) : undefined;
   const cur = acct?.currency ?? 'BDT';
   const cat = e.categoryId ? l.categories.get(e.categoryId) : undefined;
-  const name = (id: string | undefined) => (id ? (l.accounts.get(id)?.name ?? 'Deleted account') : '');
+  const name = (id: string | undefined) => {
+    const a = id ? l.accounts.get(id) : undefined;
+    return id ? (a ? accountLabel(a) : 'Deleted account') : '';
+  };
   switch (e.kind) {
     case 'expense':
     case 'income': {
@@ -65,7 +68,7 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
       return {
         icon: <Chip icon={e.kind === 'income' ? 'in' : (cat?.icon ?? 'dots')} slot={cat?.slot ?? 0} />,
         title: e.note || cat?.name || (e.kind === 'income' ? 'Income' : 'Expense'),
-        sub: `${cat?.name ?? 'No category'} · ${onLoan ? (e.kind === 'expense' ? `paid by ${acct?.name}, you owe them` : `Loan: ${acct?.name}`) : (acct?.name ?? '')}`,
+        sub: `${cat?.name ?? 'No category'} · ${onLoan && acct ? (e.kind === 'expense' ? `paid by ${acct.name}, you owe them${acct.purpose?.trim() ? ` (${acct.purpose.trim()})` : ''}` : `Loan: ${accountLabel(acct)}`) : (acct?.name ?? '')}`,
         amount: <span className={e.kind === 'income' ? 'pos' : 'neg'}>{fmtMoney(e.kind === 'income' ? e.amount : -e.amount, cur, { sign: true })}</span>,
       };
     }
@@ -84,6 +87,20 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
     case 'transfer': {
       const fromLoan = acct?.kind === 'loan';
       const toLoan = to?.kind === 'loan';
+      if (fromLoan && toLoan) {
+        // Two loans with the same person cancelled against each other (7.9); no money moved.
+        return {
+          icon: <Chip icon="swap" />,
+          title: e.note || `Cancelled out with ${acct!.name}`,
+          sub: `${loanTitle(acct!)} ↔ ${loanTitle(to!)} · no money moved`,
+          amount: (
+            <>
+              {fmtMoney(e.amount, cur)}
+              <small>Cancelled out</small>
+            </>
+          ),
+        };
+      }
       if (e.loanAction === 'lend' || e.loanAction === 'borrow' || e.loanAction === 'repay' || fromLoan || toLoan) {
         const loan = fromLoan ? acct : to;
         const money = fromLoan ? to : acct;
@@ -91,7 +108,7 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
         return {
           icon: <Chip icon={ACCOUNT_ICONS[loan?.type ?? 'person'] ?? 'person'} />,
           title: e.note || `${action} ${loan?.name ?? ''}`,
-          sub: `Loan · ${fromLoan ? 'into' : 'from'} ${money?.name ?? ''}`,
+          sub: `${loan?.purpose?.trim() || 'Loan'} · ${fromLoan ? 'into' : 'from'} ${money?.name ?? ''}`,
           amount: (
             <>
               {fmtMoney(fromLoan ? (e.toAmount ?? e.amount) : -e.amount, fromLoan ? (to?.currency ?? cur) : cur, { sign: true })}

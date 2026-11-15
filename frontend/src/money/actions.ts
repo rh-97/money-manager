@@ -4,6 +4,7 @@
  * child entries linked by parentId, so stats count them as real spending/income.
  */
 import { randomId } from '@mm/shared';
+import type { OffsetPair } from './calc.ts';
 import type { Category, Entry, LoanAction, SystemCategory } from './types.ts';
 
 export interface NewEntry {
@@ -132,4 +133,29 @@ export function correction(p: { date: string; accountId: string; current: number
   const amount = p.real - p.current;
   if (amount === 0) throw new Error('The balance already matches.');
   return [{ id: randomId(), value: { kind: 'correction', date: p.date, amount, accountId: p.accountId, note: 'Balance correction', createdAt: stamp() } }];
+}
+
+/**
+ * Cancels out loans with the same person in opposite directions (7.9). No money moves:
+ * each pair is a transfer from the loan they owe me on to the loan I owe them on, so both
+ * go down by the same amount. The first entry is the parent, so deleting it undoes all.
+ */
+export function cancelOut(pairs: OffsetPair[], date: string): NewEntry[] {
+  const out: NewEntry[] = [];
+  for (const p of pairs) {
+    out.push({
+      id: randomId(),
+      value: {
+        kind: 'transfer',
+        date,
+        amount: p.amount,
+        accountId: p.from,
+        toAccountId: p.to,
+        loanAction: 'offset',
+        parentId: out[0]?.id,
+        createdAt: stamp(),
+      },
+    });
+  }
+  return out;
 }

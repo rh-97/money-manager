@@ -335,14 +335,17 @@ Every money event is an **entry**.
 
 ### 7.1 Loan accounts
 
-- **One loan account per person or organization.** Its type is one of *Person*, *Bank*, *Organization* or *Other* (this sets the icon and label only).
-- **Fields:** name, type, currency, starting balance with direction (*they owe me* / *I owe them*) and start date, optional phone and note, and **Show this loan on Home** (on by default; turn it off for loans that aren't an immediate concern — Home's loan card and net worth leave it out, the Loans page shows it marked "not on Home").
+- **A loan account is one loan with a person or organization.** Usually there is one per person, but there can be several with the same person (e.g. one for a fridge, another for a bike repair). Its type is one of *Person*, *Bank*, *Organization* or *Other* (this sets the icon and label only).
+- **What it's for (optional):** a short reason such as "Fridge". When given, it is the loan's **headline** everywhere, with the person's name in smaller text underneath, so two loans with the same person are easy to tell apart. Elsewhere in the app (Home's loan card, History, entry details and the account pickers) such a loan reads "Fridge · Rafi". Loans without a reason show the name, as before.
+- **Fields:** what it's for, who (the person or organization's name, with people already in Loans suggested while typing), type, currency, starting balance with direction (*they owe me* / *I owe them*) and start date, optional phone and note, and **Show this loan on Home** (on by default; turn it off for loans that aren't an immediate concern — Home's loan card and net worth leave it out, the Loans page shows it marked "not on Home").
 - **The balance shows the direction:**
   - **Owed to me:** they owe me
   - **I owe:** I owe them
   - **Settled ✓:** the balance is 0
 - If the direction flips (Karim owed me, and now I owe Karim), the account **moves to the other list automatically**.
-- **Kept and reused:** a settled loan account is **never removed**. Lending to or borrowing from the same person or organization again uses the **same account**, so their whole history stays in one place. Lend and Borrow forms list existing loan accounts; choosing **+ New person or organization…** creates a new one. Choosing **None (owed from before)** instead of a money account adds to the loan's starting balance without moving money.
+- **The same person:** loans belong to the same person when their names match, ignoring capitals and extra spaces. A typed name that matches someone already in Loans uses their spelling. **Renaming** a person on a loan that shares the name with other loans asks: *"Rafi has 2 other loans. Change the name on all of them?"* (**All 3 loans** / **Only this one**).
+- **Each loan keeps its own settings:** reason, type, currency, note, phone, **Show this loan on Home** and archive are per loan, even inside a group.
+- **Kept and reused:** a settled loan account is **never removed**. Lending to or borrowing from the same person or organization again uses the **same account**, so their whole history stays in one place. Lend and Borrow forms list existing loan accounts; choosing **+ New loan…** creates a new one, with its own reason, even for someone who already has a loan. Choosing **None (owed from before)** instead of a money account adds to the loan's starting balance without moving money.
 
 ### 7.2 Example
 
@@ -399,24 +402,39 @@ Lending, borrowing and repaying the loan amount are transfers, so they are **not
 **Loans page** (its own tab in the main navigation):
 - Two tabs: **I owe** (shown first) and **Owed to me**, each with its total at the top.
 - One card per loan account, showing:
-  - name and type icon (person, bank, organization)
+  - the reason as the headline (or the name when there is none), the person's name underneath, and the type icon (person, bank, organization)
   - outstanding amount
   - a **progress bar**
   - the next due date; overdue cards are highlighted *(extra 4, later)*
   - a **Repay** button that opens the repayment form pre-filled
 - Sorted by the largest amount (overdue first, once extra 4 is added).
-- A **Settled** section (collapsed) lists loan accounts with a zero balance. Each has **Lend** and **Borrow** buttons for reuse.
+- **Grouped by person:** when a person has two or more loans in the current tab, or loans in the other direction too, their loans sit together under a heading with the person's name and that tab's total for them ("You owe ৳6,000 across 2 loans"). The total includes loans kept off Home, like the tab totals. If the person also has loans in the other direction, the heading adds **"Overall you owe Rafi ৳3,000"** (or "Rafi owes you…", or "you are even"), counted in taka, and a **Cancel out** button (7.9). A person with a single loan shows as a plain card.
+- A **Settled** section (collapsed) lists loan accounts with a zero balance, grouped by person the same way. Each has **Lend** and **Borrow** buttons for reuse.
 - An **＋ New** button adds a loan account with a starting balance, for loans from before the start date.
 
 **Loan account page:**
+- **Title:** the loan's reason, with "Loan with Rafi" above it (or the name, when there is no reason).
 - **Position** at the top: "You owe Rahim ৳6,000", "Karim owes you ৳3,000", or "Settled ✓".
 - Open lends or borrows as rows (7.4), with amount remaining, a progress bar, and due date *(extra 4, later)*.
 - The full timeline of every lend, borrow, repayment, interest and write-off, showing which money account each used.
 - Buttons: **Lend**, **Borrow**, **Repay**, **Write off**, **Edit**, **Archive**.
+- **Also with Rafi:** links to the person's other loans, with what's left on each.
 
 **Navigation badge:** the Loans tab shows a red dot when anything is overdue *(extra 4, later)*.
 
 **Stats:** a **"Loans over time"** chart showing *I owe* and *Owed to me* month by month.
+
+### 7.9 Cancelling out
+
+When I owe someone and they also owe me, the two can be cancelled against each other, with no money changing hands.
+
+- **Where:** a **Cancel out** button in the person's group on the Loans page, shown whenever they have open loans in both directions in the same currency.
+- **How much:** the smaller side is cancelled in full. If I owe Rafi ৳5,000 and Rafi owes me ৳3,000, ৳3,000 is cancelled on both sides: Rafi's loan is settled and I still owe ৳2,000. Equal amounts settle both.
+- **Several loans:** the oldest loans are cancelled first, on both sides.
+- **Before saving**, a sheet lists every loan it changes, before and after ("Fridge: you owe ৳5,000 → you owe ৳2,000"; "Bike repair: owes you ৳3,000 → settled"), with one **Cancel out ৳3,000** button.
+- **What's recorded:** one entry per pair of loans, moving the amount from the loan they owe me on to the loan I owe them on. Both go down by the same amount; **no money account changes**, nothing counts as spending or income, and Home's net worth stays the same (unless one of the loans is kept off Home). It appears in both loans' histories and in History as "Cancelled out with Rafi".
+- **Undo:** delete the entry; when several were made at once, they are linked and deleted together. It can't be edited; delete it and cancel out again instead.
+- **Taka and dollars** are never cancelled against each other, because the result would depend on the exchange rate.
 
 ---
 
@@ -492,7 +510,7 @@ Lending, borrowing and repaying the loan amount are transfers, so they are **not
 | **Add entry (＋)** | First choose a type (Expense · Income · Transfer · Lend · Borrow · Repay · More…), then a short form for that type. Quick-add favourites appear on top *(extra 1, later)*. Opens as a bottom sheet on phones and a dialog on PC. |
 | **History** | All entries, newest first, grouped by day · search by note or amount · filter by date range, type, account (money or loan), category, tag · totals for the filtered set · export *(extra 5, later)* |
 | **Accounts** | **Money accounts only.** **All my money**: the grand total of every money account, shown as dots until the card is tapped, with a total per type inside it · accounts grouped by type, each group with its total (always shown, but leaving out hidden balances — "+ 1 hidden" — until they're tapped open) · balances hidden per account until tapped (4.1); shown amounts hide again after 30 seconds · **Add up**: pick accounts or whole groups to see their combined total, for that view only · add / edit / archive · account detail shows that account's own history and a **Correct balance** button · **PIN lock** (3.5): set, change or turn off at the bottom of the page; when on, the tab and every account page ask for the PIN, and **Lock** at the top locks it again |
-| **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with progress bars (loans kept off Home are marked "not on Home"), the Settled list, and loan account pages (7.8) · **Existing loan** adds a loan owed from before, without moving money |
+| **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with the loan's reason as the headline and progress bars (loans kept off Home are marked "not on Home"), **grouped by person** with an overall line and **Cancel out** (7.9), the Settled list (grouped the same way), and loan account pages (7.8) · **Existing loan** adds a loan owed from before, without moving money |
 | **Stats** | Charts (section 12), with a period picker: this month, last month, this year, custom |
 | **Settings** | Look: style (Colour / Ink), theme (light / dark / auto) and number format · Categories · dollar rate (automatic / my own) · display name and password · **Recovery** (mode, new personal recovery key; asks for the password) · **Lock now** and **Log out** · **Recently deleted** · **Setup** (sharing, the access log, tags, favourites, recurring entries and export arrive with their extras) |
 | **Admin mode** *(extra 8, later)* | Only reachable from *Enter admin mode* plus the password (2.2), with a red bar on every admin page. **Users:** create, disable, recover, open **support mode** · **Access log** · **Backups** |
@@ -749,3 +767,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **UI fixes:** icons and text in buttons are centred; Settings' choice switches (style, theme, number format, category kind) were unstyled and are now pill switches with the chosen option in the accent colour; buttons beside an input match its height; long names in Home's loan cards are cut off with "…" instead of spilling out. **Saves run one at a time**, and quick settings changes are merged, so tapping two options in a row no longer shows a false "Changed on another device" dialog (10). |
 | 15 Nov 2026 | **Accounts PIN** (3.5), at the owner's request: the Accounts tab can be locked with a 4 to 8 digit PIN, asked for every time it's opened, with waits after repeated wrong tries and the password as a way back in. |
 | 15 Nov 2026 | Added extras 13 (**MCP server**, to use the app from AI tools and automations), 14 (**quick text and voice entry**) and 15 (**drafts to review**, the shared foundation), at the owner's request. Both AI extras are safe by default: AI-added entries are drafts until confirmed, the MCP server starts read-only with expiring keys, and text entry tries on-device rules before any AI. Not planned for now. |
+| 16 Nov 2026 | **Loans by reason and by person**, at the owner's request: each loan can say **what it's for**, shown as its headline with the person underneath (7.1). The Loans page **groups a person's loans** in both tabs and in Settled, with an overall line when loans go both ways; each loan keeps its own settings, such as Show on Home. Renaming a person can rename all their loans. **Cancel out** (7.9) cancels loans in opposite directions with the same person, the smaller side in full, oldest first, with no money moved. |

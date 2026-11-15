@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmtDate, fmtMoney } from '../lib/format.ts';
-import { liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
+import { accountLabel, liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
 import { Secret, useReveal } from '../ui/kit.tsx';
@@ -115,7 +115,7 @@ export function HomeScreen() {
     </section>
   );
 
-  const names = (list: typeof owe) => list.map((x) => `${x.a.name} ${fmtMoney(Math.abs(x.s.balance), x.a.currency)}`).join(' · ');
+  const names = (list: typeof owe) => list.map((x) => `${accountLabel(x.a)} ${fmtMoney(Math.abs(x.s.balance), x.a.currency)}`).join(', ');
   const loanCard = (
     <section className="card" aria-label="Loans">
       <div className="card-head">
