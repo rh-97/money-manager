@@ -348,7 +348,7 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
       currency,
       startingBalance,
       startDate,
-      includeInTotal: kind === 'money' ? include : true,
+      includeInTotal: include,
       hideBalance: kind === 'money' && hideBalance ? true : undefined,
       archived: existing?.archived ?? false,
       slot,
@@ -455,6 +455,12 @@ export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }:
         <Field label="Note (optional)" htmlFor="a-note" hint="Don't store full account or card numbers.">
           <input id="a-note" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
+        {kind === 'loan' && (
+          <label className="check-row">
+            <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />
+            <span>Show this loan on Home. Turn it off for loans that aren't an immediate concern: Home's loan totals and net worth leave it out, while the Loans page still shows it.</span>
+          </label>
+        )}
         {kind === 'money' && (
           <label className="check-row">
             <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />

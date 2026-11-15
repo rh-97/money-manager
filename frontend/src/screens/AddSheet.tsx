@@ -10,6 +10,8 @@ import { AmountInput, Field, Sheet } from '../ui/kit.tsx';
 
 /** Lend/borrow without a money account: a loan that was already owed before. */
 const NO_ACCOUNT = 'none';
+/** Expense paid by someone not yet in Loans: creates their loan account. */
+const NEW_PAYER = 'new-payer';
 
 const TYPES: [AddKind, string, string, string][] = [
   ['expense', 'Expense', 'out', 'Money spent'],
@@ -138,10 +140,19 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
     const extra: Change[] = [];
     switch (kind) {
       case 'expense':
-      case 'income':
+      case 'income': {
         if (!amt) return 'Enter an amount.';
         if (!categoryId) return 'Choose a category.';
-        return { entries: expenseOrIncome({ kind, date, amount: amt, accountId, categoryId, note: note.trim() }), extra };
+        // Paid by someone else: the expense comes out of their loan account, so I owe them more.
+        let payFrom = accountId;
+        if (kind === 'expense' && accountId === NEW_PAYER) {
+          if (!newLoanName.trim()) return 'Who paid for it?';
+          payFrom = randomId();
+          const value: Account = { kind: 'loan', type: newLoanType, name: newLoanName.trim(), currency: 'BDT', startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
+          extra.push({ id: payFrom, type: 'account', value });
+        }
+        return { entries: expenseOrIncome({ kind, date, amount: amt, accountId: payFrom, categoryId, note: note.trim() }), extra };
+      }
       case 'transfer':
       case 'exchange': {
         if (!amt) return 'Enter an amount.';
@@ -307,9 +318,51 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
             </div>
           </div>
           <div className="two">
-            {accountSelect('f-acct', kind === 'expense' ? 'Paid from' : 'Received into', accountId, setAccountId)}
+            {kind === 'expense' ? (
+              <Field label="Paid from" htmlFor="f-acct">
+                <select id="f-acct" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+                  <optgroup label="My accounts">
+                    {money.map(([aid, a]) => (
+                      <option key={aid} value={aid}>
+                        {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Paid by someone else (I'll owe them)">
+                    {loans.map(([lid, a]) => (
+                      <option key={lid} value={lid}>
+                        {a.name}
+                      </option>
+                    ))}
+                    <option value={NEW_PAYER}>+ Someone new…</option>
+                  </optgroup>
+                </select>
+              </Field>
+            ) : (
+              accountSelect('f-acct', 'Received into', accountId, setAccountId)
+            )}
             {dateField}
           </div>
+          {kind === 'expense' && accountId === NEW_PAYER && (
+            <div className="two">
+              <Field label="Who paid" htmlFor="f-newloan">
+                <input id="f-newloan" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
+              </Field>
+              <Field label="Type" htmlFor="f-newtype">
+                <select id="f-newtype" value={newLoanType} onChange={(e) => setNewLoanType(e.target.value as Account['type'])}>
+                  <option value="person">Person</option>
+                  <option value="bank">Bank</option>
+                  <option value="organization">Organization</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
+            </div>
+          )}
+          {kind === 'expense' && (accountId === NEW_PAYER || acct?.kind === 'loan') && (
+            <p className="hint">
+              It counts as your spending, and you'll owe <b>{accountId === NEW_PAYER ? newLoanName.trim() || 'them' : acct?.name}</b> this amount. None of your accounts changes until you repay.
+            </p>
+          )}
           {noteField(kind === 'expense' ? 'e.g. Shoes, Bata' : 'e.g. November salary')}
         </>
       );

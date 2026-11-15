@@ -26,8 +26,12 @@ export function HomeScreen() {
         .filter((x) => x.s.status !== 'settled'),
     [ledger],
   );
-  const owe = loans.filter((x) => x.s.status === 'owe').sort((a, b) => a.s.balance - b.s.balance);
-  const owed = loans.filter((x) => x.s.status === 'owed').sort((a, b) => b.s.balance - a.s.balance);
+  // Loans switched off for Home are left out here, as in the totals; the Loans page shows them all.
+  const owe = loans.filter((x) => x.a.includeInTotal && x.s.status === 'owe').sort((a, b) => a.s.balance - b.s.balance);
+  const owed = loans.filter((x) => x.a.includeInTotal && x.s.status === 'owed').sort((a, b) => b.s.balance - a.s.balance);
+  const offHome = loans.filter((x) => !x.a.includeInTotal).length;
+  const offOwe = loans.some((x) => !x.a.includeInTotal && x.s.status === 'owe');
+  const offOwed = loans.some((x) => !x.a.includeInTotal && x.s.status === 'owed');
   const money = [...ledger.accounts].filter(([, a]) => a.kind === 'money' && !a.archived).sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
   const spentPct = stats.income > 0 ? Math.min(100, Math.round((stats.spent / stats.income) * 100)) : stats.spent > 0 ? 100 : 0;
   const prevName = monthName(addMonths(month, -1));
@@ -120,7 +124,15 @@ export function HomeScreen() {
       </div>
       {t.iOwe === 0 && t.owedToMe === 0 ? (
         <p className="settled-note">
-          <Icon name="check" /> You owe nobody, and nobody owes you.
+          {offHome ? (
+            <>
+              {offHome === 1 ? '1 loan is' : `${offHome} loans are`} kept off Home. See them in Loans.
+            </>
+          ) : (
+            <>
+              <Icon name="check" /> You owe nobody, and nobody owes you.
+            </>
+          )}
         </p>
       ) : (
         <div className="loan-split">
@@ -129,14 +141,14 @@ export function HomeScreen() {
               <Icon name="out" /> I owe
             </span>
             <span className="amt num neg">{fmtMoney(t.iOwe)}</span>
-            <span className="who">{owe.length ? names(owe) : 'You owe nobody ✓'}</span>
+            <span className="who">{owe.length ? names(owe) : offOwe ? 'Nothing shown on Home' : 'You owe nobody ✓'}</span>
           </button>
           <button className="loan-half owed" onClick={() => go('/loans?tab=owed')}>
             <span className="lbl">
               <Icon name="in" /> Owed to me
             </span>
             <span className="amt num pos">{fmtMoney(t.owedToMe)}</span>
-            <span className="who">{owed.length ? names(owed) : 'Nobody owes you'}</span>
+            <span className="who">{owed.length ? names(owed) : offOwed ? 'Nothing shown on Home' : 'Nobody owes you'}</span>
           </button>
         </div>
       )}

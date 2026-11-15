@@ -91,9 +91,10 @@ export function totals(l: Ledger, today: string, upTo?: string): Totals {
     const b = bal.get(id);
     if (b === undefined) continue;
     const v = toBDT(l, b, a.currency, date);
-    if (a.kind === 'money') {
-      if (a.includeInTotal) moneyHave += v;
-    } else if (v > 0) owedToMe += v;
+    // Accounts and loans switched off for Home ("include in total") are left out here.
+    if (!a.includeInTotal) continue;
+    if (a.kind === 'money') moneyHave += v;
+    else if (v > 0) owedToMe += v;
     else iOwe += -v;
   }
   return { moneyHave, owedToMe, iOwe, netWorth: moneyHave + owedToMe - iOwe };

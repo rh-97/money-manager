@@ -60,7 +60,7 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
       return {
         icon: <Chip icon={e.kind === 'income' ? 'in' : (cat?.icon ?? 'dots')} slot={cat?.slot ?? 0} />,
         title: e.note || cat?.name || (e.kind === 'income' ? 'Income' : 'Expense'),
-        sub: `${cat?.name ?? 'No category'} · ${onLoan ? `Loan: ${acct?.name}` : (acct?.name ?? '')}`,
+        sub: `${cat?.name ?? 'No category'} · ${onLoan ? (e.kind === 'expense' ? `paid by ${acct?.name}, you owe them` : `Loan: ${acct?.name}`) : (acct?.name ?? '')}`,
         amount: <span className={e.kind === 'income' ? 'pos' : 'neg'}>{fmtMoney(e.kind === 'income' ? e.amount : -e.amount, cur, { sign: true })}</span>,
       };
     }

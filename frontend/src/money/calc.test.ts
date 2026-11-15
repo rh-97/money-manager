@@ -37,6 +37,19 @@ function ledger(accounts: Record<string, Account>): Ledger & { add: (items: { id
 }
 
 describe('balances', () => {
+  it('records an expense paid by a friend as spending and as money I owe them', () => {
+    const l = ledger({
+      city: account({ name: 'City', startingBalance: tk(10000) }),
+      rahim: account({ name: 'Rahim', kind: 'loan', type: 'person' }),
+    });
+    l.add(expenseOrIncome({ kind: 'expense', date: '2026-11-05', amount: tk(1200), accountId: 'rahim', categoryId: l.cat('Eating Out'), note: 'Dinner' }));
+    expect(periodStats(l, '2026-11-01', '2026-11-30').spent).toBe(tk(1200));
+    expect(loanSummary(l, 'rahim')).toMatchObject({ status: 'owe', balance: -tk(1200) });
+    const t = totals(l, '2026-11-15');
+    expect(t.moneyHave).toBe(tk(10000));
+    expect(t.iOwe).toBe(tk(1200));
+  });
+
   it('applies expenses, income and transfers with a fee', () => {
     const l = ledger({ bkash: account({ name: 'bKash', type: 'wallet', startingBalance: tk(15000) }), cash: account({ name: 'Cash', type: 'cash' }) });
     l.add(expenseOrIncome({ kind: 'expense', date: '2026-11-02', amount: tk(1250), accountId: 'bkash', categoryId: l.cat('Food & Groceries') }));
@@ -83,6 +96,7 @@ describe('totals and dollar rate', () => {
       held: account({ name: 'Held', startingBalance: tk(5000), includeInTotal: false }),
       rahim: account({ name: 'Rahim', kind: 'loan', type: 'person', startingBalance: tk(-6000) }),
       karim: account({ name: 'Karim', kind: 'loan', type: 'person', startingBalance: tk(3000) }),
+      later: account({ name: 'Uncle', kind: 'loan', type: 'person', startingBalance: tk(-50000), includeInTotal: false }),
     });
     const t = totals(l, '2026-11-15');
     expect(t.moneyHave).toBe(tk(100000) + 32000 * 122 - tk(8750));

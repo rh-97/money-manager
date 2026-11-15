@@ -34,7 +34,10 @@ function LoanCard({ row }: { row: LoanRow }) {
         <Chip icon={ACCOUNT_ICONS[a.type] ?? 'person'} />
         <span className="row-main">
           <span className="row-title">{a.name}</span>
-          <span className="row-sub">{s.openItems[0] ? `since ${fmtDate(s.openItems[0].date, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</span>
+          <span className="row-sub">
+            {s.openItems[0] ? `since ${fmtDate(s.openItems[0].date, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+            {!a.includeInTotal && (s.openItems[0] ? ' · ' : '') + 'not on Home'}
+          </span>
         </span>
         <span className={`row-amt num ${owe ? 'neg' : 'pos'}`}>
           {fmtMoney(Math.abs(s.balance), a.currency)}
