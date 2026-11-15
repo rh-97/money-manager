@@ -131,4 +131,4 @@ The frontend and backend never import each other's code; they only talk over the
 
 ## Status
 
-Version 1 is finished and in daily use. Ideas for later, such as receipt photos, two-step login, sharing records with someone else, offline use and an admin screen, are listed in the [specification](docs/spec-v1.md).
+Version 1 is finished and in daily use. Ideas for later, such as receipt photos, two-step login, sharing records with someone else, offline use, an admin screen, voice entry and use from AI tools (MCP), are listed in the [specification](docs/spec-v1.md).
