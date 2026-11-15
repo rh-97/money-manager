@@ -61,7 +61,8 @@ export function LoansScreen() {
   const loans = useLoans();
   const initialTab = new URLSearchParams(location.search).get('tab') === 'owed' ? 'owed' : 'owe';
   const [tab, setTab] = useState<'owe' | 'owed'>(initialTab);
-  const [adding, setAdding] = useState(false);
+  // Adding a loan that was already owed: opens with the current tab's direction.
+  const [adding, setAdding] = useState<'owe' | 'owed' | null>(null);
   const bdt = (r: LoanRow) => toBDT(ledger, Math.abs(r.s.balance), r.a.currency, today);
   const owe = loans.filter((r) => r.s.status === 'owe' && !r.a.archived);
   const owed = loans.filter((r) => r.s.status === 'owed' && !r.a.archived);
@@ -76,8 +77,8 @@ export function LoansScreen() {
           <p className="eyebrow">People and organizations</p>
           <h1 className="h1">Loans</h1>
         </div>
-        <button className="btn small ghost" onClick={() => setAdding(true)}>
-          <Icon name="plus" /> New
+        <button className="btn small ghost" onClick={() => setAdding(tab)}>
+          <Icon name="plus" /> Existing loan
         </button>
       </header>
       <div className="tabs" role="tablist">
@@ -105,6 +106,9 @@ export function LoansScreen() {
             <button className="btn small ghost" onClick={() => openAdd({ kind: tab === 'owe' ? 'borrow' : 'lend' })}>
               {tab === 'owe' ? 'Record money you borrowed' : 'Record money you lent'}
             </button>
+            <button className="btn small ghost" onClick={() => setAdding(tab)}>
+              Add a loan from before
+            </button>
           </div>
         </section>
       )}
@@ -129,7 +133,7 @@ export function LoansScreen() {
           </div>
         </details>
       )}
-      {adding && <AccountSheet kind="loan" onClose={() => setAdding(false)} />}
+      {adding && <AccountSheet kind="loan" initialDirection={adding} onClose={() => setAdding(null)} />}
     </div>
   );
 }

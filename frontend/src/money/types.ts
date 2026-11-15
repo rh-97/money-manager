@@ -7,7 +7,7 @@
 
 export type Currency = 'BDT' | 'USD';
 
-export type MoneyAccountType = 'bank' | 'wallet' | 'cash' | 'card' | 'savings' | 'other';
+export type MoneyAccountType = 'bank' | 'wallet' | 'ewallet' | 'cash' | 'card' | 'savings' | 'other';
 export type LoanAccountType = 'person' | 'bank' | 'organization' | 'other';
 
 export interface Account {

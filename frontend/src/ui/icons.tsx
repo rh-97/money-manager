@@ -66,6 +66,7 @@ export function Chip({ icon, slot }: { icon: string; slot?: number }) {
 export const ACCOUNT_ICONS: Record<string, string> = {
   bank: 'bank',
   wallet: 'phone',
+  ewallet: 'wallet',
   cash: 'cash',
   card: 'card',
   savings: 'safe',

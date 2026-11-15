@@ -14,6 +14,7 @@
 - **Record what happens in a few taps:** expenses, income, moving money between your own accounts (with any fee), and changing taka into dollars or back.
 - **Never forget a loan:** lend or borrow money, then record repayments bit by bit, including partial payments, interest and forgiving what's left. Each person or bank gets their own loan page, and "I owe" and "Owed to me" are always shown clearly apart.
 - **See where your money goes:** monthly spending by category, income against spending, how your money grows over the year, and which days you spent most, with short plain-language notes like *"Food is up 26% on October"*.
+- **Add up any accounts:** pick a few accounts on the Accounts page to see what they hold together, without changing any other total.
 - **Two currencies:** Bangladeshi taka (৳) is the main currency, with US dollars alongside. The dollar rate updates every day, or you can set your own.
 - **Use it anywhere:** works on phones, tablets and computers, in light or dark mode, in **Colour** or **Ink** (black and white).
 - **Share the server, not your data:** up to about 20 people (family or friends) can each have their own login. Each person's money is private to them (see [Privacy](#privacy-in-plain-words) for the one exception they can choose).

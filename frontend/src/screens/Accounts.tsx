@@ -10,6 +10,7 @@ import { Field, Secret, Sheet, useReveal } from '../ui/kit.tsx';
 export const MONEY_TYPES: [MoneyAccountType, string][] = [
   ['bank', 'Bank'],
   ['wallet', 'Mobile wallet'],
+  ['ewallet', 'E-wallet'],
   ['cash', 'Cash'],
   ['card', 'Credit card'],
   ['savings', 'Savings & investments'],
@@ -30,6 +31,16 @@ export function AccountsScreen() {
   const [showArchived, setShowArchived] = useState(false);
   // Totals stay hidden until the top card is tapped, so nobody sees them over your shoulder.
   const [showTotals, toggleTotals] = useReveal();
+  // "Add up": pick any accounts to see their combined total. Only for this view; nothing is saved.
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const togglePick = (ids: string[], on?: boolean) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      const add = on ?? !ids.every((i) => next.has(i));
+      for (const i of ids) (add ? next.add(i) : next.delete(i));
+      return next;
+    });
   const money = [...ledger.accounts].filter(([, a]) => a.kind === 'money').sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
   const visible = money.filter(([, a]) => showArchived || !a.archived);
   const archivedCount = money.filter(([, a]) => a.archived).length;
@@ -41,6 +52,10 @@ export function AccountsScreen() {
     const items = money.filter(([, a]) => a.type === type);
     return { type, label, count: items.length, sum: items.reduce((s, x) => s + inBDT(x), 0) };
   }).filter((t) => t.count > 0);
+  const pickedRows = money.filter(([id]) => picked.has(id));
+  const pickedSum = pickedRows.reduce((s, x) => s + inBDT(x), 0);
+  const pickedHidden = pickedRows.some(([, a]) => a.hideBalance);
+  const pickedUsd = pickedRows.some(([, a]) => a.currency === 'USD');
   const rate = rateOn(ledger, today);
   const hasUsd = money.some(([, a]) => a.currency === 'USD');
 
@@ -51,10 +66,27 @@ export function AccountsScreen() {
           <p className="eyebrow">{money.length} accounts</p>
           <h1 className="h1">Accounts</h1>
         </div>
-        <button className="btn small ghost" onClick={() => setAdding(true)}>
-          <Icon name="plus" /> Add
-        </button>
+        <div className="list-actions" style={{ margin: 0 }}>
+          {money.length > 1 && (
+            <button
+              className="btn small ghost"
+              aria-pressed={picking}
+              onClick={() => {
+                setPicking((v) => !v);
+                setPicked(new Set());
+              }}
+            >
+              <Icon name={picking ? 'x' : 'check'} /> {picking ? 'Done' : 'Add up'}
+            </button>
+          )}
+          {!picking && (
+            <button className="btn small ghost" onClick={() => setAdding(true)}>
+              <Icon name="plus" /> Add
+            </button>
+          )}
+        </div>
       </header>
+      {picking && <p className="hint" style={{ margin: 0 }}>Tap accounts to add them up. Tap a group's name to pick the whole group. This doesn't change any other total.</p>}
       {money.length > 0 && (
         <section
           className="hero tappable"
@@ -112,7 +144,13 @@ export function AccountsScreen() {
           return (
             <div key={type} className="col" style={{ gap: 8 }}>
               <div className="group-head">
-                <span>{label}</span>
+                {picking ? (
+                  <button type="button" className="link group-pick" onClick={() => togglePick(items.map(([id]) => id))}>
+                    {label}
+                  </button>
+                ) : (
+                  <span>{label}</span>
+                )}
                 <span className="num">{showTotals ? fmtMoney(sum) : '••••••'}</span>
               </div>
               <section className="card" style={{ paddingBlock: 4 }}>
@@ -121,7 +159,13 @@ export function AccountsScreen() {
                     const b = bals.get(id) ?? 0;
                     const hide = Boolean(a.hideBalance);
                     return (
-                      <button key={id} className="row acct-row" onClick={() => go(`/accounts/${id}`)}>
+                      <button
+                        key={id}
+                        className={`row acct-row${picking && picked.has(id) ? ' picked' : ''}`}
+                        aria-pressed={picking ? picked.has(id) : undefined}
+                        onClick={() => (picking ? togglePick([id]) : go(`/accounts/${id}`))}
+                      >
+                        {picking && <span className="pick-box" aria-hidden="true">{picked.has(id) && <Icon name="check" />}</span>}
                         <Chip icon={ACCOUNT_ICONS[a.type] ?? 'wallet'} slot={a.slot} />
                         <span className="row-main">
                           <span className="row-title">{a.name}</span>
@@ -145,6 +189,23 @@ export function AccountsScreen() {
           );
         })}
       </div>
+      {picking && (
+        <div className="pick-bar" role="status" aria-live="polite">
+          <span className="pick-count">
+            {picked.size ? `${picked.size} selected` : 'Nothing selected'}
+          </span>
+          <b className="num pick-sum">
+            <Secret hidden={pickedHidden} label="selected total">
+              {(pickedUsd ? '≈ ' : '') + fmtMoney(pickedSum)}
+            </Secret>
+          </b>
+          {picked.size > 0 && (
+            <button className="link" onClick={() => setPicked(new Set())}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
       {archivedCount > 0 && (
         <button className="link" onClick={() => setShowArchived((v) => !v)}>
           {showArchived ? 'Hide' : 'Show'} {archivedCount} archived
@@ -242,14 +303,14 @@ export function AccountDetail({ id }: { id: string }) {
 }
 
 /** Create or edit a money account or a loan account. */
-export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' | 'loan'; id?: string; onClose: () => void; onCreated?: (id: string) => void }) {
+export function AccountSheet({ kind, id, onClose, onCreated, initialDirection }: { kind: 'money' | 'loan'; id?: string; onClose: () => void; onCreated?: (id: string) => void; initialDirection?: 'owed' | 'owe' }) {
   const { ledger, today, wide, save, go } = useApp();
   const existing = id ? ledger.accounts.get(id) : undefined;
   const hasEntries = id ? [...ledger.entries.values()].some((e) => e.accountId === id || e.toAccountId === id) : false;
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<string>(existing?.type ?? (kind === 'money' ? 'bank' : 'person'));
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'BDT');
-  const [direction, setDirection] = useState<'owed' | 'owe'>(existing && existing.startingBalance < 0 ? 'owe' : 'owed');
+  const [direction, setDirection] = useState<'owed' | 'owe'>(existing ? (existing.startingBalance < 0 ? 'owe' : 'owed') : (initialDirection ?? 'owed'));
   const startAbs = existing ? Math.abs(existing.startingBalance) : 0;
   const [balance, setBalance] = useState(existing ? amountInputValue(kind === 'loan' ? startAbs : existing.startingBalance) : '');
   const [startDate, setStartDate] = useState(existing?.startDate ?? ledger.settings.startDate ?? today);
@@ -309,8 +370,13 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
 
   const types = kind === 'money' ? MONEY_TYPES : LOAN_TYPES;
   return (
-    <Sheet title={id ? `Edit ${existing?.name}` : kind === 'money' ? 'New account' : 'New loan account'} onClose={onClose} wide={wide}>
+    <Sheet title={id ? `Edit ${existing?.name}` : kind === 'money' ? 'New account' : 'Add an existing loan'} onClose={onClose} wide={wide}>
       <form className="col" style={{ gap: 12 }} onSubmit={submit}>
+        {kind === 'loan' && !id && (
+          <p className="hint">
+            For money that was already owed before you started recording. No money account changes, so <b>Money I have</b> and the Accounts total stay the same; only the loan totals and net worth include it.
+          </p>
+        )}
         <Field label="Name" htmlFor="a-name">
           <input id="a-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'money' ? 'e.g. City Bank Salary, bKash, Cash (drawer)' : 'e.g. Rahim, BRAC Bank home loan'} autoFocus={!id} />
         </Field>
@@ -331,7 +397,7 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
         </div>
         {kind === 'loan' && (
           <div className="field">
-            <label>Before today</label>
+            <label>Who owes whom</label>
             <div className="cat-pick">
               <button type="button" aria-pressed={direction === 'owed'} onClick={() => setDirection('owed')}>They owe me</button>
               <button type="button" aria-pressed={direction === 'owe'} onClick={() => setDirection('owe')}>I owe them</button>

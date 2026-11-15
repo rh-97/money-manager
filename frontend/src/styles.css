@@ -255,6 +255,16 @@ details.settled summary::-webkit-details-marker { display: none; }
 /* Accounts page */
 .group-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 2px 0; }
 .acct-row { border: 0; background: none; width: 100%; text-align: left; }
+.acct-row.picked { background: var(--surface-2); border-radius: var(--r-md); }
+.pick-box { width: 22px; height: 22px; flex: none; border: 2px solid var(--line-strong, var(--muted)); border-radius: 7px; display: grid; place-items: center; }
+.acct-row.picked .pick-box { background: var(--accent, var(--ink)); border-color: var(--accent, var(--ink)); color: var(--on-accent, var(--surface)); }
+.pick-box svg { width: 14px; height: 14px; }
+.group-pick { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.pick-bar { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--hero-bg); color: var(--hero-ink); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18); }
+.pick-bar .pick-count { color: var(--hero-muted); font-size: 13.5px; }
+.pick-bar .pick-sum { margin-left: auto; font-size: 22px; font-weight: 800; }
+.pick-bar .link { color: var(--hero-ink); }
+.stage.wide .pick-bar { bottom: 16px; }
 
 /* Sheet */
 .sheet-wrap { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: var(--scrim); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }

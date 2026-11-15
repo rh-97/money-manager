@@ -8,6 +8,9 @@ import { useApp, useBalances, type AddKind, type AddPreset, type Change } from '
 import { Icon } from '../ui/icons.tsx';
 import { AmountInput, Field, Sheet } from '../ui/kit.tsx';
 
+/** Lend/borrow without a money account: a loan that was already owed before. */
+const NO_ACCOUNT = 'none';
+
 const TYPES: [AddKind, string, string, string][] = [
   ['expense', 'Expense', 'out', 'Money spent'],
   ['income', 'Income', 'in', 'Salary, other'],
@@ -158,6 +161,18 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
       case 'lend':
       case 'borrow': {
         if (!amt) return 'Enter an amount.';
+        if (accountId === NO_ACCOUNT) {
+          // Owed from before: no money moves, so only the loan's starting balance changes.
+          const signed = kind === 'lend' ? amt : -amt;
+          if (loanId === 'new') {
+            if (!newLoanName.trim()) return kind === 'lend' ? 'Who owes you?' : 'Who do you owe?';
+            const value: Account = { kind: 'loan', type: newLoanType, name: newLoanName.trim(), currency: 'BDT', startingBalance: signed, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
+            return { entries: [], extra: [{ id: randomId(), type: 'account', value }] };
+          }
+          if (!loan) return 'Choose a loan.';
+          const value: Account = { ...loan, startingBalance: loan.startingBalance + signed, startDate: date < loan.startDate ? date : loan.startDate };
+          return { entries: [], extra: [{ id: loanId, type: 'account', value }] };
+        }
         let lid = loanId;
         if (loanId === 'new') {
           if (!newLoanName.trim()) return kind === 'lend' ? 'Who are you lending to?' : 'Who are you borrowing from?';
@@ -226,9 +241,10 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
     }
     setBusy(true);
     const changes: Change[] = [...r.extra, ...r.entries.map((n) => ({ id: n.id, type: 'entry' as const, value: n.value }))];
-    const main = r.entries[0]!.value;
-    const msg =
-      kind === 'expense' || kind === 'income'
+    const main = r.entries[0]?.value;
+    const msg = !main
+      ? 'Loan from before added'
+      : kind === 'expense' || kind === 'income'
         ? `Saved ${fmtMoney(main.kind === 'income' ? main.amount : -main.amount, acct?.currency, { sign: true })} · ${ledger.categories.get(categoryId)?.name ?? ''}`
         : kind === 'correction'
           ? `${acct?.name} corrected by ${fmtMoney(main.amount, acct?.currency, { sign: true })}`
@@ -330,7 +346,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
     case 'borrow':
       fields = (
         <>
-          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(kind === 'lend' ? acct : (loan ?? acct))} autoFocus />
+          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(accountId === NO_ACCOUNT ? loan : kind === 'lend' ? acct : (loan ?? acct))} autoFocus />
           <Field label={kind === 'lend' ? 'Lend to' : 'Borrow from'} htmlFor="f-loan">
             <select id="f-loan" value={loanId} onChange={(e) => setLoanId(e.target.value)}>
               {loans.map(([lid, a]) => {
@@ -361,15 +377,29 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
             </div>
           )}
           <div className="two">
-            {accountSelect('f-acct', kind === 'lend' ? 'From account' : 'Into account', accountId, setAccountId)}
+            <Field label={kind === 'lend' ? 'From account' : 'Into account'} htmlFor="f-acct">
+              <select id="f-acct" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+                {money.map(([aid, a]) => (
+                  <option key={aid} value={aid}>
+                    {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
+                  </option>
+                ))}
+                <option value={NO_ACCOUNT}>None (owed from before)</option>
+              </select>
+            </Field>
             {dateField}
           </div>
+          {accountId === NO_ACCOUNT && (
+            <p className="hint">
+              No money moves now, so <b>Money I have</b> and the Accounts total stay the same. {kind === 'lend' ? 'It adds to what they owe you.' : 'It adds to what you owe them.'}
+            </p>
+          )}
           {loanCurrencyDiffers && (
             <Field label={`Amount in ${kind === 'lend' ? loan!.currency : acct!.currency}`} htmlFor="f-recv" hint="The loan and the account use different currencies.">
               <input id="f-recv" inputMode="decimal" value={toAmount} onChange={(e) => setToAmount(e.target.value)} />
             </Field>
           )}
-          {kind === 'lend' && feeField}
+          {kind === 'lend' && accountId !== NO_ACCOUNT && feeField}
           {noteField('Optional')}
         </>
       );

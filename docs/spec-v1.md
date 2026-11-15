@@ -216,6 +216,7 @@ A user can have several accounts of the same type, e.g. *Cash (wallet)* and *Cas
 |---|---|---|
 | Bank | City Bank, DBBL | Normal: money in, money out |
 | Mobile wallet | bKash, Nagad, Rocket | Normal |
+| E-wallet | A bank's own e-wallet | Normal |
 | Cash | Wallet, drawer | Normal |
 | Credit card | Any card | Balance = **amount owed**, shown as negative. Spending on the card increases what's owed. Paying the bill is a **transfer** from a bank to the card. |
 | Savings & investments | FDR, DPS, savings certificates | Funded by a **transfer**. Interest is recorded as **income** into the account. On maturity, transfer the money out and archive the account. |
@@ -239,7 +240,7 @@ On a user's **first login** (with the one-time password from the admin), a short
 2. **Choose recovery** (3.3): *Admin can recover my account* or *Only I can recover my account*. Then show the **personal recovery key** to print or write down. It's required for "only I" and offered for admin recovery.
 3. **Start date:** the day you start recording (defaults to today).
 4. **Money accounts:** add each account with its balance **as of the start date**.
-5. **Existing loans:** add each person or organization who already owes you, or whom you already owe, with the amount. This creates a **loan account with a starting balance**. It does **not** touch any money account, because that money moved before you started using the app.
+5. **Existing loans:** add each person or organization who already owes you, or whom you already owe, with the amount. This creates a **loan account with a starting balance**. It does **not** touch any money account, because that money moved before you started using the app. The same can be done any time later: **Loans → Existing loan**, or **No account: it was owed from before** in the Lend and Borrow forms (which adds to an existing loan's starting balance). Such loans never change *Money I have* or the Accounts total; they count only in the loan totals and net worth.
 
 Steps 1–2 are required. Steps 3–5 can be skipped and finished later from **Settings → Setup**.
 
@@ -720,3 +721,5 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **Stay unlocked for an hour** (3.4), at the owner's request: reloading no longer asks for the password within an hour of the last use. Added **Lock now** in Settings. Changing the recovery choice now asks for the password. |
 | 15 Nov 2026 | **Two kinds of totals**, at the owner's request: Home counts only accounts marked "include in total"; the Accounts page shows the grand total of all money accounts and a total per account type (4.1). |
 | 15 Nov 2026 | **Hide amounts from onlookers**, at the owner's request: the Accounts page's totals show dots until the top card is tapped, and each money account can **hide its balance** until tapped (4.1). Shown amounts hide again after 30 seconds. Stats charts are not hidden. |
+| 15 Nov 2026 | Added the **E-wallet** account type (4.2). Loans owed from before can be added at any time without a money account (5), from the Loans page or the Lend/Borrow forms. |
+| 15 Nov 2026 | **Add up** on the Accounts page: pick any accounts (or whole groups) to see their combined total. Only for that view; it changes no other total and nothing is saved. |
