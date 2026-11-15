@@ -31,7 +31,14 @@ export function AccountsScreen() {
   const money = [...ledger.accounts].filter(([, a]) => a.kind === 'money').sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
   const visible = money.filter(([, a]) => showArchived || !a.archived);
   const archivedCount = money.filter(([, a]) => a.archived).length;
-  const total = money.filter(([, a]) => a.includeInTotal).reduce((s, [id, a]) => s + toBDT(ledger, bals.get(id) ?? 0, a.currency, today), 0);
+  // The Accounts page counts every money account; Home counts only those marked "count in the Home total".
+  const inBDT = ([id, a]: (typeof money)[number]) => toBDT(ledger, bals.get(id) ?? 0, a.currency, today);
+  const total = money.reduce((s, x) => s + inBDT(x), 0);
+  const homeTotal = money.filter(([, a]) => a.includeInTotal).reduce((s, x) => s + inBDT(x), 0);
+  const byType = MONEY_TYPES.map(([type, label]) => {
+    const items = money.filter(([, a]) => a.type === type);
+    return { type, label, count: items.length, sum: items.reduce((s, x) => s + inBDT(x), 0) };
+  }).filter((t) => t.count > 0);
   const rate = rateOn(ledger, today);
   const hasUsd = money.some(([, a]) => a.currency === 'USD');
 
@@ -48,8 +55,25 @@ export function AccountsScreen() {
       </header>
       {money.length > 0 && (
         <section className="hero">
-          <p className="hero-label">Money I have</p>
+          <p className="hero-label">All my money</p>
           <p className="hero-amount num">{fmtMoney(total)}</p>
+          {byType.length > 1 && (
+            <div className="type-totals">
+              {byType.map((t) => (
+                <span key={t.type}>
+                  <span className="lbl">{t.label}</span>
+                  <b className="num">{fmtMoney(t.sum)}</b>
+                </span>
+              ))}
+            </div>
+          )}
+          {Math.round(homeTotal) !== Math.round(total) && (
+            <p className="hero-sub">
+              <span>
+                Home shows <b className="num">{fmtMoney(homeTotal)}</b>, only the accounts you count in the Home total.
+              </span>
+            </p>
+          )}
           {hasUsd && (
             <p className="hero-sub">
               Dollars counted at $1 = ৳{rate.rate.toFixed(2)} · {rate.source === 'own' ? 'your rate' : rate.source === 'auto' ? `automatic · ${rate.date === today ? 'updated today' : `from ${fmtDate(rate.date!)}`}` : 'estimate (no rate yet)'}
@@ -70,7 +94,7 @@ export function AccountsScreen() {
         {MONEY_TYPES.map(([type, label]) => {
           const items = visible.filter(([, a]) => a.type === type);
           if (!items.length) return null;
-          const sum = items.filter(([, a]) => a.includeInTotal).reduce((s, [id, a]) => s + toBDT(ledger, bals.get(id) ?? 0, a.currency, today), 0);
+          const sum = byType.find((t) => t.type === type)?.sum ?? 0;
           return (
             <div key={type} className="col" style={{ gap: 8 }}>
               <div className="group-head">
@@ -88,7 +112,7 @@ export function AccountsScreen() {
                           <span className="row-title">{a.name}</span>
                           <span className="row-sub">
                             {a.archived ? 'Archived · ' : ''}
-                            {a.type === 'savings' && a.maturityDate ? `${a.interestRate ? `${a.interestRate}% · ` : ''}matures ${fmtDate(a.maturityDate, { month: 'short', year: 'numeric' })}` : a.currency === 'USD' ? `≈ ${fmtMoney(toBDT(ledger, b, 'USD', today))}` : a.includeInTotal ? typeLabel(a) : 'Not counted in total'}
+                            {a.type === 'savings' && a.maturityDate ? `${a.interestRate ? `${a.interestRate}% · ` : ''}matures ${fmtDate(a.maturityDate, { month: 'short', year: 'numeric' })}` : a.currency === 'USD' ? `≈ ${fmtMoney(toBDT(ledger, b, 'USD', today))}` : a.includeInTotal ? typeLabel(a) : 'Not in the Home total'}
                           </span>
                         </span>
                         <span className={`row-amt num ${b < 0 ? 'neg' : ''}`}>
@@ -337,7 +361,7 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
         {kind === 'money' && (
           <label className="check-row">
             <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />
-            <span>Count this in my total (turn off for money that isn't really yours, e.g. held for someone)</span>
+            <span>Count this in the Home total. Turn it off for savings you don't want to see every day, or money held for someone. The Accounts page always counts every account.</span>
           </label>
         )}
         {error && <p className="error-text" role="alert">{error}</p>}

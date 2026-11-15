@@ -203,7 +203,7 @@ Both kinds:
 | Currency | ✅ | BDT (৳) or USD ($). It cannot be changed once the account has entries. |
 | Starting balance + start date | ✅ | The balance **as of** the start date (can be 0). See section 5. |
 | Colour / icon | — | For quick recognition |
-| Include in total | — | On by default. Turn it off for money that isn't really yours to count (e.g. held for someone). |
+| Include in total | — | On by default. Controls only **Home**: its total ("Money I have" and net worth) and the accounts it lists. Turn it off for savings you don't want to see every day, or money held for someone. The **Accounts** page always shows the grand total of every money account, plus a total for each type (bank, mobile wallet, cash, …). |
 | Note | — | Free text. **Do not store full account or card numbers.** |
 | Savings fields | — | For savings and investments only: interest rate, maturity date |
 
@@ -717,3 +717,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **UI (M0):** mockup approved with changes: Colour style is the default with Ink switchable in Settings; wide screens use the full width; split login and setup on wide screens (14). |
 | 15 Nov 2026 | **Built (M1-M5) and deployed** to https://138-2-66-148.sslip.io. Implementation choices within the spec's flexibility clause (3.5, 15.1): libsodium 0.8 (0.7's ESM build is broken); Node's built-in SQLite with plain SQL migrations instead of Drizzle (no native modules on the ARM VM); auth written in the backend instead of Better Auth (it had to fit the two-key login); the approved mockup's CSS reused instead of Tailwind/shadcn; the backend is bundled into one file and run in the official Node image, so no custom Docker image is needed. Added: an **Unlock** screen, because after a reload the session is still valid but the data key, kept in memory only, must be re-derived from the password; and ids derived from the data key for default records, to prevent duplicates. Backups are nightly on the VM; Google Drive is pending the owner's sign-in. |
 | 15 Nov 2026 | **Stay unlocked for an hour** (3.4), at the owner's request: reloading no longer asks for the password within an hour of the last use. Added **Lock now** in Settings. Changing the recovery choice now asks for the password. |
+| 15 Nov 2026 | **Two kinds of totals**, at the owner's request: Home counts only accounts marked "include in total"; the Accounts page shows the grand total of all money accounts and a total per account type (4.1). |

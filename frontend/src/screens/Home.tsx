@@ -133,6 +133,8 @@ export function HomeScreen() {
     </section>
   );
 
+  // Home lists only the accounts counted in the Home total; the Accounts page lists them all.
+  const homeAccounts = money.filter(([, a]) => a.includeInTotal);
   const accounts = (
     <section className="card" aria-label="Accounts">
       <div className="card-head">
@@ -140,7 +142,8 @@ export function HomeScreen() {
         <button className="link" onClick={() => go('/accounts')}>All {money.length}</button>
       </div>
       <div className="acct-grid">
-        {money.slice(0, xl ? money.length : 6).map(([id, a]) => {
+        {!homeAccounts.length && <p className="small-muted">No accounts are counted in the Home total.</p>}
+        {homeAccounts.slice(0, xl ? homeAccounts.length : 6).map(([id, a]) => {
           const bal = bals.get(id) ?? 0;
           return (
             <button key={id} className="acct-mini" onClick={() => go(`/accounts/${id}`)}>
