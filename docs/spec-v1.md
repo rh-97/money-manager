@@ -152,7 +152,6 @@ Without the data key, data can't be recovered by anyone, so every user picks how
 - A stolen database therefore can't open any admin lockbox.
 - **Admin responsibility:** keep the phrase very safe, e.g. printed and stored securely. **If it's lost, admin recovery stops working for everyone who relies on it.** The admin's own account should use a personal recovery key.
 - **Changing the phrase** (`setup-recovery` again) needs the old phrase. Every user's admin lockbox is re-locked with the new public half straight away, so nobody loses access. Backups made before the change can still only be opened with the old phrase.
-- **Where it's kept (owner's choice):** the owner keeps the phrase in the repository at `docs/notes/vm-maintenance.md`, accepting that anyone who also gets a copy of the database could read the data of admin-recovery users. The phrase alone gives no access.
 
 **Recovering a user (admin recovery mode):**
 1. The admin runs `recover-user ayesha` and types the recovery phrase.
@@ -727,6 +726,6 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **Add up** on the Accounts page: pick any accounts (or whole groups) to see their combined total. Only for that view; it changes no other total and nothing is saved. |
 | 15 Nov 2026 | Accounts page group totals (Bank, Mobile wallet, …) are always shown again, but leave out hidden-balance accounts ("+ 1 hidden") until one is tapped open; then that group's total includes it. The grand total stays hidden until tapped. |
 | 15 Nov 2026 | **Loans can be kept off Home** ("Show this loan on Home" in the loan's form): Home's loan card and net worth leave them out; the Loans page shows them, marked "not on Home". **Expenses paid by someone else**: "Paid from" in the expense form also lists people in Loans (and "+ Someone new…"); the expense counts as spending and adds to what you owe them, and no money account changes. |
-| 15 Nov 2026 | **Admin recovery phrase** set by the owner and, at the owner's choice, kept in the repository (`docs/notes/vm-maintenance.md`); the GitHub repository is public (3.3). The README was rewritten for new readers, with screenshots of the design mockup in `docs/screenshots/`. |
+| 15 Nov 2026 | **Admin recovery phrase** set up by the owner (3.3). The README was rewritten for new readers, with screenshots of the design mockup in `docs/screenshots/`. |
 | 15 Nov 2026 | **Wide screens:** the sidebar can be collapsed to icons (11); account group cards on the Accounts page are at least 420 px wide and long account names wrap instead of being cut off. |
 | 15 Nov 2026 | **UI fixes:** icons and text in buttons are centred; Settings' choice switches (style, theme, number format, category kind) were unstyled and are now pill switches with the chosen option in the accent colour; buttons beside an input match its height; long names in Home's loan cards are cut off with "…" instead of spilling out. **Saves run one at a time**, and quick settings changes are merged, so tapping two options in a row no longer shows a false "Changed on another device" dialog (10). |
