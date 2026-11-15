@@ -310,3 +310,56 @@ describe('passwords and recovery', () => {
     expect(res.body.error).toBe('admin_recovery_not_ready');
   });
 });
+
+describe('stay unlocked on this device', () => {
+  it('gives the same device key back within the hour, only to the same session', async () => {
+    const { c, password } = await newReadyUser('rina');
+    const made = await c.req('POST', '/api/auth/remember');
+    expect(made.status).toBe(200);
+    const again = await c.req('POST', '/api/auth/remember/open');
+    expect(again.status).toBe(200);
+    expect(again.body.key).toBe(made.body.key);
+
+    // Another device (another session) of the same user does not get it.
+    const other = new Client(app);
+    await login(other, 'rina', password);
+    expect((await other.req('POST', '/api/auth/remember/open')).status).toBe(404);
+  });
+
+  it('forgets the device key after an hour without use', async () => {
+    const { c } = await newReadyUser('rina');
+    await c.req('POST', '/api/auth/remember');
+    db.prepare('UPDATE sessions SET unlock_expires_at = ?').run(new Date(Date.now() - 1000).toISOString());
+    expect((await c.req('POST', '/api/auth/remember/touch')).body.active).toBe(false);
+    expect((await c.req('POST', '/api/auth/remember/open')).status).toBe(404);
+    const row = db.prepare('SELECT unlock_key FROM sessions').get() as { unlock_key: string | null };
+    expect(row.unlock_key).toBeNull();
+  });
+
+  it('extends the hour while the device is in use', async () => {
+    const { c } = await newReadyUser('rina');
+    await c.req('POST', '/api/auth/remember');
+    const soon = new Date(Date.now() + 60_000).toISOString();
+    db.prepare('UPDATE sessions SET unlock_expires_at = ?').run(soon);
+    expect((await c.req('POST', '/api/auth/remember/touch')).body.active).toBe(true);
+    const row = db.prepare('SELECT unlock_expires_at FROM sessions').get() as { unlock_expires_at: string };
+    expect(Date.parse(row.unlock_expires_at)).toBeGreaterThan(Date.now() + 50 * 60_000);
+  });
+
+  it('forgets the device key when asked and when logging out', async () => {
+    const { c } = await newReadyUser('rina');
+    await c.req('POST', '/api/auth/remember');
+    await c.req('POST', '/api/auth/remember/forget');
+    expect((await c.req('POST', '/api/auth/remember/open')).status).toBe(404);
+
+    await c.req('POST', '/api/auth/remember');
+    await c.req('POST', '/api/auth/logout');
+    expect(db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE unlock_key IS NOT NULL').get()).toEqual({ n: 0 });
+  });
+
+  it('needs a logged-in, set-up account', async () => {
+    const c = new Client(app);
+    expect((await c.req('POST', '/api/auth/remember')).status).toBe(401);
+    expect((await c.req('POST', '/api/auth/remember/open')).status).toBe(401);
+  });
+});

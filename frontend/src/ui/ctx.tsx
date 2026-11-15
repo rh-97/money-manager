@@ -17,7 +17,6 @@ export interface AppCtxValue {
   vault: Vault;
   ledger: Ledger & { settingsId: string | null };
   session: Session;
-  loginKey: string;
   dataKey: Uint8Array;
   today: string;
   wide: boolean;
@@ -29,8 +28,9 @@ export interface AppCtxValue {
   /** Saves changes; shows the conflict dialog or an error toast on failure. Returns true on success. */
   save: (changes: Change[], okMessage?: string) => Promise<boolean>;
   setSession: (s: Session) => void;
-  setLoginKey: (k: string) => void;
   logout: () => void;
+  /** Locks the app on this device now; the password is needed again. */
+  lock: () => void;
 }
 
 export const AppCtx = createContext<AppCtxValue | null>(null);

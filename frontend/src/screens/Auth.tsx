@@ -8,7 +8,8 @@ import { Icon } from '../ui/icons.tsx';
 export interface Unlocked {
   session: Session;
   dataKey: Uint8Array;
-  keys: PasswordKeys;
+  /** Missing when the app was reopened on a device that stayed unlocked. */
+  keys: PasswordKeys | null;
   /** Shown once, right after first-time setup. */
   recoveryKey?: string;
   firstSetup?: boolean;
@@ -360,7 +361,7 @@ export function ForcePasswordScreen({ unlocked, onDone }: { unlocked: Unlocked; 
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      const r = await changePassword({ currentLoginKey: unlocked.keys.loginKey, dataKey: unlocked.dataKey, newPassword: pw });
+      const r = await changePassword({ currentLoginKey: unlocked.keys!.loginKey, dataKey: unlocked.dataKey, newPassword: pw });
       onDone({ ...unlocked, session: r.session, keys: r.keys });
     } catch (err) {
       setError(errorText(err));

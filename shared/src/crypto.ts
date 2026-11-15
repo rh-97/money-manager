@@ -98,7 +98,7 @@ export function derivePasswordKeys(password: string, saltB64: string, kdf: KdfPa
 
 // ---------- Data key and lockboxes ----------
 
-export type LockboxKind = 'password' | 'personal_recovery';
+export type LockboxKind = 'password' | 'personal_recovery' | 'device';
 
 export function newDataKey(): Uint8Array {
   return s().crypto_aead_xchacha20poly1305_ietf_keygen();

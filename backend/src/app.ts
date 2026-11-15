@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { api, DEFAULT_KDF } from '@mm/shared';
 import type { Config } from './config.ts';
@@ -11,6 +11,8 @@ import { hashSecret, newToken, sha256, verifySecret } from './secrets.ts';
 const SESSION_COOKIE = 'mm_session';
 const SESSION_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** How long a device stays unlocked after its last use (spec 3.4). */
+export const STAY_UNLOCKED_MS = 60 * 60 * 1000;
 
 interface UserRow {
   id: string;
@@ -106,6 +108,9 @@ export function buildApp(db: DB, config: Config): FastifyInstance {
     insertSession: db.prepare('INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),
     touchSession: db.prepare('UPDATE sessions SET expires_at = ? WHERE token_hash = ?'),
     deleteSession: db.prepare('DELETE FROM sessions WHERE token_hash = ?'),
+    unlockKey: db.prepare('SELECT unlock_key, unlock_expires_at FROM sessions WHERE token_hash = ?'),
+    setUnlockKey: db.prepare('UPDATE sessions SET unlock_key = ?, unlock_expires_at = ? WHERE token_hash = ?'),
+    extendUnlockKey: db.prepare('UPDATE sessions SET unlock_expires_at = ? WHERE token_hash = ? AND unlock_key IS NOT NULL AND unlock_expires_at > ?'),
     deleteOtherSessions: db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?'),
     deleteAllSessions: db.prepare('DELETE FROM sessions WHERE user_id = ?'),
     failure: db.prepare('SELECT count, last_at FROM login_failures WHERE key = ?'),
@@ -379,6 +384,52 @@ export function buildApp(db: DB, config: Config): FastifyInstance {
     });
     startSession(reply, user.id);
     return sessionView(q.userById.get(user.id) as unknown as UserRow);
+  });
+
+  // ---------- Stay unlocked on this device ----------
+  // The browser keeps its data key locked with a random device key, and only the
+  // server keeps that device key, for one hour after the last use. The server never
+  // sees the locked data key, and the browser's copy is useless once the hour is up.
+
+  const unlockExpiry = () => new Date(Date.now() + STAY_UNLOCKED_MS).toISOString();
+
+  /** Returns the session's device key if it has not expired; clears it if it has. */
+  function liveUnlockKey(hash: string): string | null {
+    const row = q.unlockKey.get(hash) as { unlock_key: string | null; unlock_expires_at: string | null } | undefined;
+    if (!row?.unlock_key) return null;
+    if (!row.unlock_expires_at || Date.parse(row.unlock_expires_at) < Date.now()) {
+      q.setUnlockKey.run(null, null, hash);
+      return null;
+    }
+    return row.unlock_key;
+  }
+
+  app.post('/api/auth/remember', async (req) => {
+    requireReady(req);
+    const key = randomBytes(32).toString('base64');
+    const expiresAt = unlockExpiry();
+    q.setUnlockKey.run(key, expiresAt, req.sessionHash!);
+    return { key, expiresAt };
+  });
+
+  app.post('/api/auth/remember/open', async (req) => {
+    requireReady(req);
+    const key = liveUnlockKey(req.sessionHash!);
+    if (!key) throw new HttpError(404, 'not_remembered', 'Unlock with your password.');
+    const expiresAt = unlockExpiry();
+    q.extendUnlockKey.run(expiresAt, req.sessionHash!, now());
+    return { key, expiresAt };
+  });
+
+  app.post('/api/auth/remember/touch', async (req) => {
+    requireUser(req);
+    const active = q.extendUnlockKey.run(unlockExpiry(), req.sessionHash!, now()).changes > 0;
+    return { active };
+  });
+
+  app.post('/api/auth/remember/forget', async (req) => {
+    if (req.sessionHash) q.setUnlockKey.run(null, null, req.sessionHash);
+    return { ok: true };
   });
 
   // ---------- Records ----------

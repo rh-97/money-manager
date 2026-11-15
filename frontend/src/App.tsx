@@ -4,6 +4,7 @@ import { fetchSession, logout as apiLogout, unlock, type Session } from './lib/a
 import { fmtMoney, setNumberFormat, todayDhaka } from './lib/format.ts';
 import { ConflictError, Vault, type Change } from './lib/vault.ts';
 import { ApiError } from './lib/api.ts';
+import { forgetDevice, keepDeviceUnlockedWhileUsed, openRememberedDevice, rememberDevice } from './lib/remember.ts';
 import { DEFAULT_CATEGORIES, defaultSettings } from './money/defaults.ts';
 import type { Entry } from './money/types.ts';
 import { ForcePasswordScreen, LoginScreen, RecoverScreen, SetupAuthScreen, UnlockScreen, errorText, type Unlocked } from './screens/Auth.tsx';
@@ -42,17 +43,28 @@ function Root() {
   const [state, setState] = useState<Phase>({ phase: 'boot' });
 
   useEffect(() => {
-    void fetchSession().then((s) => {
-      if (!s) setState({ phase: 'login' });
-      else if (!s.user.setupDone) setState({ phase: 'login', username: s.user.username });
-      else setState({ phase: 'unlock', session: s });
-    });
+    void (async () => {
+      const s = await fetchSession();
+      if (!s) return setState({ phase: 'login' });
+      if (!s.user.setupDone) return setState({ phase: 'login', username: s.user.username });
+      // Reopened within the hour on a device that stayed unlocked: no password needed.
+      const dataKey = s.user.mustChangePassword ? null : await openRememberedDevice(s.user.id);
+      setState(dataKey ? { phase: 'app', unlocked: { session: s, dataKey, keys: null } } : { phase: 'unlock', session: s });
+    })();
   }, []);
 
-  const afterUnlock = (u: Unlocked) => setState(u.session.user.mustChangePassword ? { phase: 'force', unlocked: u } : { phase: 'app', unlocked: u });
+  const afterUnlock = (u: Unlocked) => {
+    if (u.session.user.mustChangePassword) return setState({ phase: 'force', unlocked: u });
+    void rememberDevice(u.session.user.id, u.dataKey);
+    setState({ phase: 'app', unlocked: u });
+  };
   const toLogin = () => {
-    void apiLogout();
+    void forgetDevice().then(apiLogout);
     setState({ phase: 'login' });
+  };
+  const lock = (session: Session) => {
+    void forgetDevice();
+    setState({ phase: 'unlock', session });
   };
 
   switch (state.phase) {
@@ -83,12 +95,12 @@ function Root() {
     case 'force':
       return <ForcePasswordScreen unlocked={state.unlocked} onDone={afterUnlock} />;
     case 'app':
-      return <Loader unlocked={state.unlocked} onLogout={toLogin} />;
+      return <Loader unlocked={state.unlocked} onLogout={toLogin} onLock={lock} />;
   }
 }
 
 /** Loads and decrypts all records, creates first-time records, then shows the app. */
-function Loader({ unlocked, onLogout }: { unlocked: Unlocked; onLogout: () => void }) {
+function Loader({ unlocked, onLogout, onLock }: { unlocked: Unlocked; onLogout: () => void; onLock: (s: Session) => void }) {
   const vault = useMemo(() => new Vault(unlocked.dataKey), [unlocked.dataKey]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +157,7 @@ function Loader({ unlocked, onLogout }: { unlocked: Unlocked; onLogout: () => vo
         </span>
       </div>
     );
-  return <MainApp vault={vault} unlocked={unlocked} onLogout={onLogout} />;
+  return <MainApp vault={vault} unlocked={unlocked} onLogout={onLogout} onLock={onLock} />;
 }
 
 function usePath(): [string, (p: string) => void] {
@@ -171,10 +183,9 @@ const NAV: [string, string, string][] = [
   ['/accounts', 'Accounts', 'wallet'],
 ];
 
-function MainApp({ vault, unlocked, onLogout }: { vault: Vault; unlocked: Unlocked; onLogout: () => void }) {
+function MainApp({ vault, unlocked, onLogout, onLock }: { vault: Vault; unlocked: Unlocked; onLogout: () => void; onLock: (s: Session) => void }) {
   const ledger = useSyncExternalStore(vault.subscribe, vault.getLedger);
   const [session, setSession] = useState(unlocked.session);
-  const [loginKey, setLoginKey] = useState(unlocked.keys.loginKey);
   const [fullPath, go] = usePath();
   const path = fullPath.split('?')[0]!;
   const { wide, xl } = useViewport();
@@ -222,7 +233,6 @@ function MainApp({ vault, unlocked, onLogout }: { vault: Vault; unlocked: Unlock
     vault,
     ledger,
     session,
-    loginKey,
     dataKey: unlocked.dataKey,
     today,
     wide,
@@ -233,12 +243,17 @@ function MainApp({ vault, unlocked, onLogout }: { vault: Vault; unlocked: Unlock
     openEntry: setEntryId,
     save,
     setSession,
-    setLoginKey,
     logout: () => {
       vault.stop();
       onLogout();
     },
+    lock: () => {
+      vault.stop();
+      onLock(session);
+    },
   };
+
+  useEffect(() => keepDeviceUnlockedWhileUsed(), []);
 
   const setupStep = ledger.settings.setupStep;
   let screen;

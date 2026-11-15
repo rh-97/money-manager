@@ -32,7 +32,7 @@ function Seg<T extends string>({ value, options, onChange, label }: { value: T; 
 }
 
 export function SettingsScreen() {
-  const { ledger, wide, save, session, logout } = useApp();
+  const { ledger, wide, save, session, logout, lock } = useApp();
   const s = ledger.settings;
   const update = (patch: Partial<Settings>) => ledger.settingsId && save([{ id: ledger.settingsId, type: 'settings', value: { ...s, ...patch } }]);
 
@@ -87,11 +87,13 @@ export function SettingsScreen() {
         </div>
         <div className="list-actions">
           <button className="btn ghost small" onClick={() => void update({ setupStep: 3 })}>Run setup again</button>
+          <button className="btn ghost small" onClick={lock}>Lock now</button>
           <button className="btn ghost small" onClick={logout}>
             <Icon name="logout" /> Log out
           </button>
         </div>
         <p className="small-muted">Your data is encrypted on this device. The server only stores unreadable data.</p>
+        <p className="small-muted">This device stays unlocked for an hour after you last use the app. After that, or after "Lock now", it asks for your password again.</p>
       </Section>
     </>
   );
@@ -225,7 +227,7 @@ function Categories() {
 }
 
 function PasswordSection() {
-  const { session, dataKey, setSession, setLoginKey } = useApp();
+  const { session, dataKey, setSession } = useApp();
   const [current, setCurrent] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
@@ -242,7 +244,6 @@ function PasswordSection() {
       const currentKey = derivePasswordKeys(current, session.user.salt, session.user.kdf).loginKey;
       const r = await changePassword({ currentLoginKey: currentKey, dataKey, newPassword: pw });
       setSession(r.session);
-      setLoginKey(r.keys.loginKey);
       setCurrent('');
       setPw('');
       setPw2('');
@@ -274,8 +275,9 @@ function PasswordSection() {
 }
 
 function RecoverySection() {
-  const { session, dataKey, loginKey, setSession } = useApp();
+  const { session, dataKey, setSession } = useApp();
   const adminReady = Boolean(session.adminRecoveryPublicKey);
+  const [current, setCurrent] = useState('');
   const [mode, setMode] = useState<api.RecoveryMode>(session.user.recoveryMode ?? 'self');
   const [busy, setBusy] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -285,8 +287,12 @@ function RecoverySection() {
     setBusy(true);
     setError(null);
     try {
+      if (!current) throw new Error('Type your password first.');
+      await new Promise((r) => setTimeout(r, 40));
+      const currentKey = derivePasswordKeys(current, session.user.salt, session.user.kdf).loginKey;
       const needKey = makeKey || (mode === 'self' && !session.user.hasPersonalRecovery);
-      const r = await changeRecovery({ currentLoginKey: loginKey, dataKey, mode, newKey: needKey, adminPub: session.adminRecoveryPublicKey });
+      const r = await changeRecovery({ currentLoginKey: currentKey, dataKey, mode, newKey: needKey, adminPub: session.adminRecoveryPublicKey });
+      setCurrent('');
       setSession(r.session);
       setNewKey(r.recoveryKey);
     } catch (err) {
@@ -307,6 +313,9 @@ function RecoverySection() {
         <span className="d">Nobody else can read your data. You need your recovery key.</span>
       </button>
       <p className="small-muted">Personal recovery key: {session.user.hasPersonalRecovery ? 'set up' : 'none yet'}.</p>
+      <Field label="Your password, to confirm" htmlFor="rec-pw">
+        <input id="rec-pw" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+      </Field>
       {error && <p className="error-text">{error}</p>}
       <div className="list-actions">
         {changed && (

@@ -80,6 +80,11 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  // 2: "stay unlocked on this device": the server's half of a short-lived device key
+  `
+  ALTER TABLE sessions ADD COLUMN unlock_key TEXT;
+  ALTER TABLE sessions ADD COLUMN unlock_expires_at TEXT;
+  `,
 ];
 
 export function openDatabase(path: string): DB {
