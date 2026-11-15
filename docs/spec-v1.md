@@ -151,7 +151,8 @@ Without the data key, data can't be recovered by anyone, so every user picks how
   - the **private half** is **never stored anywhere**. It's recreated from the phrase only while `recover-user` runs, then forgotten.
 - A stolen database therefore can't open any admin lockbox.
 - **Admin responsibility:** keep the phrase very safe, e.g. printed and stored securely. **If it's lost, admin recovery stops working for everyone who relies on it.** The admin's own account should use a personal recovery key.
-- **Changing the phrase** (`setup-recovery` again) needs the old phrase. Each user's admin lockbox is then re-locked with the new public half the next time they log in.
+- **Changing the phrase** (`setup-recovery` again) needs the old phrase. Every user's admin lockbox is re-locked with the new public half straight away, so nobody loses access. Backups made before the change can still only be opened with the old phrase.
+- **Where it's kept (owner's choice):** the owner keeps the phrase in the repository at `docs/notes/vm-maintenance.md`, accepting that anyone who also gets a copy of the database could read the data of admin-recovery users. The phrase alone gives no access.
 
 **Recovering a user (admin recovery mode):**
 1. The admin runs `recover-user ayesha` and types the recovery phrase.
@@ -264,7 +265,7 @@ Every money event is an **entry**.
 
 | Type | Fields | Effect |
 |---|---|---|
-| **Expense** | Money account, category | Account balance ↓ (on a credit card, amount owed ↑) |
+| **Expense** | Money account, category; or **paid by someone else** (a loan account) | Account balance ↓ (on a credit card, amount owed ↑). When someone else paid, no money account changes: it counts as spending and adds to what I owe them. |
 | **Income** | Money account, category | Account balance ↑ |
 | **Transfer** | From money account, to money account, fee (optional) | From ↓, to ↑. Not counted as spending or income. |
 | **Currency exchange** | From, to, amount sent, amount received, fee (optional) | A transfer between a BDT and a USD account. Both amounts are recorded, so the rate is kept. |
@@ -323,13 +324,13 @@ Every money event is an **entry**.
 ### 7.1 Loan accounts
 
 - **One loan account per person or organization.** Its type is one of *Person*, *Bank*, *Organization* or *Other* (this sets the icon and label only).
-- **Fields:** name, type, currency, starting balance with direction (*they owe me* / *I owe them*) and start date, and optional phone and note.
+- **Fields:** name, type, currency, starting balance with direction (*they owe me* / *I owe them*) and start date, optional phone and note, and **Show this loan on Home** (on by default; turn it off for loans that aren't an immediate concern — Home's loan card and net worth leave it out, the Loans page shows it marked "not on Home").
 - **The balance shows the direction:**
   - **Owed to me:** they owe me
   - **I owe:** I owe them
   - **Settled ✓:** the balance is 0
 - If the direction flips (Karim owed me, and now I owe Karim), the account **moves to the other list automatically**.
-- **Kept and reused:** a settled loan account is **never removed**. Lending to or borrowing from the same person or organization again uses the **same account**, so their whole history stays in one place. Lend and Borrow forms list existing loan accounts with a search box; typing a new name creates a new one.
+- **Kept and reused:** a settled loan account is **never removed**. Lending to or borrowing from the same person or organization again uses the **same account**, so their whole history stays in one place. Lend and Borrow forms list existing loan accounts; choosing **+ New person or organization…** creates a new one. Choosing **None (owed from before)** instead of a money account adds to the loan's starting balance without moving money.
 
 ### 7.2 Example
 
@@ -381,6 +382,7 @@ Lending, borrowing and repaying the loan amount are transfers, so they are **not
 - **Owed to me:** a total in **green** with the top names listed
 - **Overdue** items get a warning badge *(extra 4, later)*
 - When I owe nothing, the card shows **"You owe nobody ✓"**
+- Loans kept off Home are left out of this card and of Home's net worth; if every open loan is kept off, the card says how many are hidden instead.
 
 **Loans page** (its own tab in the main navigation):
 - Two tabs: **I owe** (shown first) and **Owed to me**, each with its total at the top.
@@ -467,20 +469,20 @@ Lending, borrowing and repaying the loan amount are transfers, so they are **not
 ## 11. Pages
 
 **Navigation**
-- **Phone:** a bottom bar with Home · History · **＋** · Loans · Stats. Accounts and Settings open from the menu icon in the top bar; on Home, account cards also open their accounts.
-- **PC:** a left sidebar with Home, History, Loans, Stats, Accounts and Settings, plus a prominent **＋ Add** button
+- **Phone:** a bottom bar with Home · History · **＋** · Loans · Stats. Settings opens from the settings button at the top right of Home; Accounts opens from **All N** on Home's Accounts card (and account cards open their accounts).
+- **PC:** a left sidebar with Home, History, Loans, Stats, Accounts and Settings, plus a prominent **＋ Add** button. The sidebar can be **collapsed** to a narrow strip of icons (names show on hover) and expanded again; each device remembers the choice.
 
 | Page | Contents |
 |---|---|
 | **Login** | Username and password · **"Forgot password?"**, which explains the two options: use your recovery key, or ask the admin (admin recovery users only) |
 | **Setup** | First-login setup (section 5) |
-| **Home** | **Money I have** (all money accounts, in BDT) · **Net worth** (money I have + owed to me − I owe) · **Loans card** (7.8) · each money account's balance (tap to open) · this month's income vs. spending · recurring entries waiting to be confirmed *(extra 2, later)* · last 10 entries |
+| **Home** | **Money I have** (money accounts counted in the Home total, in BDT) · **Net worth** (money I have + owed to me − I owe, counting only loans shown on Home) · **Loans card** (7.8) · the balances of accounts counted in the Home total (tap to open) · if a counted account hides its balance, the Home totals show dots until tapped · this month's income vs. spending · recurring entries waiting to be confirmed *(extra 2, later)* · last 10 entries |
 | **Add entry (＋)** | First choose a type (Expense · Income · Transfer · Lend · Borrow · Repay · More…), then a short form for that type. Quick-add favourites appear on top *(extra 1, later)*. Opens as a bottom sheet on phones and a dialog on PC. |
 | **History** | All entries, newest first, grouped by day · search by note or amount · filter by date range, type, account (money or loan), category, tag · totals for the filtered set · export *(extra 5, later)* |
-| **Accounts** | **Money accounts only**, grouped by type with balances · add / edit / archive · account detail shows that account's own history and a **Correct balance** button |
-| **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with progress bars, the Settled list, and loan account pages (7.8) |
+| **Accounts** | **Money accounts only.** **All my money**: the grand total of every money account, shown as dots until the card is tapped, with a total per type inside it · accounts grouped by type, each group with its total (always shown, but leaving out hidden balances — "+ 1 hidden" — until they're tapped open) · balances hidden per account until tapped (4.1); shown amounts hide again after 30 seconds · **Add up**: pick accounts or whole groups to see their combined total, for that view only · add / edit / archive · account detail shows that account's own history and a **Correct balance** button |
+| **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with progress bars (loans kept off Home are marked "not on Home"), the Settled list, and loan account pages (7.8) · **Existing loan** adds a loan owed from before, without moving money |
 | **Stats** | Charts (section 12), with a period picker: this month, last month, this year, custom |
-| **Settings** | Categories · dollar rate (automatic / my own) · number format · light/dark/system theme · display name and password · **Recovery** (mode, new personal recovery key) · **Recently deleted** · **Setup** (sharing, the access log, tags, favourites, recurring entries and export arrive with their extras) |
+| **Settings** | Look: style (Colour / Ink), theme (light / dark / auto) and number format · Categories · dollar rate (automatic / my own) · display name and password · **Recovery** (mode, new personal recovery key; asks for the password) · **Lock now** and **Log out** · **Recently deleted** · **Setup** (sharing, the access log, tags, favourites, recurring entries and export arrive with their extras) |
 | **Admin mode** *(extra 8, later)* | Only reachable from *Enter admin mode* plus the password (2.2), with a red bar on every admin page. **Users:** create, disable, recover, open **support mode** · **Access log** · **Backups** |
 
 ---
@@ -531,7 +533,7 @@ None of these are in version 1. They'll be chosen once version 1 is in use.
 
 | Area | Requirement |
 |---|---|
-| **Devices** | Works well from 360 px phone width to large desktop screens, with no sideways scrolling. **Wide screens use the full width:** sidebar navigation plus two columns, or three on very wide screens (1280 px and up). Login and setup use a split layout on wide screens. See the approved mockup, [docs/design/mockup-v1.html](design/mockup-v1.html). |
+| **Devices** | Works well from 360 px phone width to large desktop screens, with no sideways scrolling. **Wide screens use the full width:** sidebar navigation (collapsible) plus two columns, or three on very wide screens (1280 px and up). Login and setup use a split layout on wide screens. See the approved mockup, [docs/design/mockup-v1.html](design/mockup-v1.html). |
 | **Install** | Can be installed to the phone home screen (PWA) with its own icon |
 | **Look** | Two styles, switchable in **Settings → Style**: **Colour** (default: blue accent and a colour per category) and **Ink** (black and white, with colour only for meaning). Each comes in light, dark, or follow the system. Red/green always comes with a −/+ sign or words, never colour alone. |
 | **Speed** | Pages load in under 1 second on the home network. Unlocking and building all data after login takes under 2 seconds for 10 years of entries on a mid-range phone. |
@@ -725,3 +727,6 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 15 Nov 2026 | **Add up** on the Accounts page: pick any accounts (or whole groups) to see their combined total. Only for that view; it changes no other total and nothing is saved. |
 | 15 Nov 2026 | Accounts page group totals (Bank, Mobile wallet, …) are always shown again, but leave out hidden-balance accounts ("+ 1 hidden") until one is tapped open; then that group's total includes it. The grand total stays hidden until tapped. |
 | 15 Nov 2026 | **Loans can be kept off Home** ("Show this loan on Home" in the loan's form): Home's loan card and net worth leave them out; the Loans page shows them, marked "not on Home". **Expenses paid by someone else**: "Paid from" in the expense form also lists people in Loans (and "+ Someone new…"); the expense counts as spending and adds to what you owe them, and no money account changes. |
+| 15 Nov 2026 | **Admin recovery phrase** set by the owner and, at the owner's choice, kept in the repository (`docs/notes/vm-maintenance.md`); the GitHub repository is public (3.3). The README was rewritten for new readers, with screenshots of the design mockup in `docs/screenshots/`. |
+| 15 Nov 2026 | **Wide screens:** the sidebar can be collapsed to icons (11); account group cards on the Accounts page are at least 420 px wide and long account names wrap instead of being cut off. |
+| 15 Nov 2026 | **UI fixes:** icons and text in buttons are centred; Settings' choice switches (style, theme, number format, category kind) were unstyled and are now pill switches with the chosen option in the accent colour; buttons beside an input match its height; long names in Home's loan cards are cut off with "…" instead of spilling out. **Saves run one at a time**, and quick settings changes are merged, so tapping two options in a row no longer shows a false "Changed on another device" dialog (10). |
