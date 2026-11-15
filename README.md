@@ -53,6 +53,7 @@
   - **"The admin can help me":** the admin can give you a new password and nothing is lost. The admin can also technically read your data.
   - **"Only I can recover":** only your personal recovery key (shown once, to write down) can get you back in. Nobody else can ever read your data. Lose both the password and the key, and the data is gone for good.
 - **Staying unlocked:** after you unlock, the device stays unlocked for an hour after you last use it, so you don't type your password on every reload. **Lock now** in Settings ends it straight away.
+- **No peeking over your shoulder:** the grand total on the Accounts page shows dots until you tap it, and you can hide any account's balance the same way. Shown amounts hide again after 30 seconds.
 - **One honest limit:** the server sends the app to your browser, so you have to trust whoever runs the server not to change the app. This is true of every website.
 
 The full design is in the [specification](docs/spec-v1.md), section 3.

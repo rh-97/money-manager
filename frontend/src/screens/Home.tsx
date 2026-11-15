@@ -3,11 +3,13 @@ import { fmtDate, fmtMoney } from '../lib/format.ts';
 import { liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
+import { Secret, useReveal } from '../ui/kit.tsx';
 
 export function HomeScreen() {
   const { ledger, today, wide, xl, go, openAdd, session } = useApp();
   const t = useMemo(() => totals(ledger, today), [ledger, today]);
   const bals = useBalances();
+  const [showTotals, toggleTotals] = useReveal();
   const month = today.slice(0, 7);
   const [mFrom] = monthRange(month);
   const stats = useMemo(() => periodStats(ledger, mFrom, today), [ledger, mFrom, today]);
@@ -59,20 +61,28 @@ export function HomeScreen() {
     );
   }
 
+  // If a hidden-balance account is counted here, the totals would give it away: hide them too until tapped.
+  const totalsHidden = money.some(([, a]) => a.includeInTotal && a.hideBalance) && !showTotals;
   const hero = (
     <section className="hero" aria-label="Totals">
       <p className="hero-label">Money I have</p>
-      <p className="hero-amount num">{fmtMoney(t.moneyHave)}</p>
-      <p className="hero-sub">
-        Net worth <b className="num">{fmtMoney(t.netWorth)}</b> after loans{' '}
-        <button
-          className="info"
-          aria-label="How net worth is worked out"
-          data-tip={`Net worth = money I have (${fmtMoney(t.moneyHave)}) + owed to me (${fmtMoney(t.owedToMe)}) − I owe (${fmtMoney(t.iOwe)})`}
-        >
-          i
-        </button>
+      <p className="hero-amount num">
+        <Secret hidden={money.some(([, a]) => a.includeInTotal && a.hideBalance)} shown={showTotals} onToggle={toggleTotals} label="totals">
+          {fmtMoney(t.moneyHave)}
+        </Secret>
       </p>
+      {!totalsHidden && (
+        <p className="hero-sub">
+          Net worth <b className="num">{fmtMoney(t.netWorth)}</b> after loans{' '}
+          <button
+            className="info"
+            aria-label="How net worth is worked out"
+            data-tip={`Net worth = money I have (${fmtMoney(t.moneyHave)}) + owed to me (${fmtMoney(t.owedToMe)}) − I owe (${fmtMoney(t.iOwe)})`}
+          >
+            i
+          </button>
+        </p>
+      )}
     </section>
   );
 
@@ -148,7 +158,11 @@ export function HomeScreen() {
           return (
             <button key={id} className="acct-mini" onClick={() => go(`/accounts/${id}`)}>
               <span className="n">{a.name}</span>
-              <span className={`v num ${bal < 0 ? 'neg' : ''}`}>{fmtMoney(bal, a.currency)}</span>
+              <span className={`v num ${bal < 0 ? 'neg' : ''}`}>
+                <Secret hidden={Boolean(a.hideBalance)} label={`${a.name} balance`}>
+                  {fmtMoney(bal, a.currency)}
+                </Secret>
+              </span>
             </button>
           );
         })}

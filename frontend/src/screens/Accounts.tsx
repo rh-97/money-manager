@@ -5,7 +5,7 @@ import { accountHistory, rateOn, toBDT } from '../money/calc.ts';
 import type { Account, Currency, LoanAccountType, MoneyAccountType } from '../money/types.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { ACCOUNT_ICONS, Chip, Icon } from '../ui/icons.tsx';
-import { Field, Sheet } from '../ui/kit.tsx';
+import { Field, Secret, Sheet, useReveal } from '../ui/kit.tsx';
 
 export const MONEY_TYPES: [MoneyAccountType, string][] = [
   ['bank', 'Bank'],
@@ -28,6 +28,8 @@ export function AccountsScreen() {
   const bals = useBalances();
   const [adding, setAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  // Totals stay hidden until the top card is tapped, so nobody sees them over your shoulder.
+  const [showTotals, toggleTotals] = useReveal();
   const money = [...ledger.accounts].filter(([, a]) => a.kind === 'money').sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
   const visible = money.filter(([, a]) => showArchived || !a.archived);
   const archivedCount = money.filter(([, a]) => a.archived).length;
@@ -54,10 +56,22 @@ export function AccountsScreen() {
         </button>
       </header>
       {money.length > 0 && (
-        <section className="hero">
+        <section
+          className="hero tappable"
+          role="button"
+          tabIndex={0}
+          aria-label={showTotals ? 'Hide totals' : 'Show totals'}
+          onClick={toggleTotals}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleTotals())}
+        >
           <p className="hero-label">All my money</p>
-          <p className="hero-amount num">{fmtMoney(total)}</p>
-          {byType.length > 1 && (
+          <p className="hero-amount num">{showTotals ? fmtMoney(total) : <span className="secret-dots">৳ ••••••</span>}</p>
+          {!showTotals && (
+            <p className="hero-hint">
+              <Icon name="eye" /> Tap to show your totals
+            </p>
+          )}
+          {showTotals && byType.length > 1 && (
             <div className="type-totals">
               {byType.map((t) => (
                 <span key={t.type}>
@@ -67,7 +81,7 @@ export function AccountsScreen() {
               ))}
             </div>
           )}
-          {Math.round(homeTotal) !== Math.round(total) && (
+          {showTotals && Math.round(homeTotal) !== Math.round(total) && (
             <p className="hero-sub">
               <span>
                 Home shows <b className="num">{fmtMoney(homeTotal)}</b>, only the accounts you count in the Home total.
@@ -99,12 +113,13 @@ export function AccountsScreen() {
             <div key={type} className="col" style={{ gap: 8 }}>
               <div className="group-head">
                 <span>{label}</span>
-                <span className="num">{fmtMoney(sum)}</span>
+                <span className="num">{showTotals ? fmtMoney(sum) : '••••••'}</span>
               </div>
               <section className="card" style={{ paddingBlock: 4 }}>
                 <div className="rows">
                   {items.map(([id, a]) => {
                     const b = bals.get(id) ?? 0;
+                    const hide = Boolean(a.hideBalance);
                     return (
                       <button key={id} className="row acct-row" onClick={() => go(`/accounts/${id}`)}>
                         <Chip icon={ACCOUNT_ICONS[a.type] ?? 'wallet'} slot={a.slot} />
@@ -112,12 +127,14 @@ export function AccountsScreen() {
                           <span className="row-title">{a.name}</span>
                           <span className="row-sub">
                             {a.archived ? 'Archived · ' : ''}
-                            {a.type === 'savings' && a.maturityDate ? `${a.interestRate ? `${a.interestRate}% · ` : ''}matures ${fmtDate(a.maturityDate, { month: 'short', year: 'numeric' })}` : a.currency === 'USD' ? `≈ ${fmtMoney(toBDT(ledger, b, 'USD', today))}` : a.includeInTotal ? typeLabel(a) : 'Not in the Home total'}
+                            {a.type === 'savings' && a.maturityDate ? `${a.interestRate ? `${a.interestRate}% · ` : ''}matures ${fmtDate(a.maturityDate, { month: 'short', year: 'numeric' })}` : a.currency === 'USD' && !hide ? `≈ ${fmtMoney(toBDT(ledger, b, 'USD', today))}` : a.includeInTotal ? typeLabel(a) : 'Not in the Home total'}
                           </span>
                         </span>
                         <span className={`row-amt num ${b < 0 ? 'neg' : ''}`}>
-                          {fmtMoney(b, a.currency)}
-                          {a.type === 'card' && b < 0 && <small>owed on card</small>}
+                          <Secret hidden={hide} label={`${a.name} balance`}>
+                            {fmtMoney(b, a.currency)}
+                          </Secret>
+                          {a.type === 'card' && b < 0 && !hide && <small>owed on card</small>}
                         </span>
                       </button>
                     );
@@ -144,6 +161,7 @@ export function AccountDetail({ id }: { id: string }) {
   const a = ledger.accounts.get(id);
   const history = useMemo(() => (a ? accountHistory(ledger, id) : []), [ledger, id, a]);
   const [editing, setEditing] = useState(false);
+  const [showBalance, toggleBalance] = useReveal();
   if (!a) return <div className="screen"><p className="muted">This account no longer exists.</p></div>;
   if (a.kind === 'loan')
     return (
@@ -160,9 +178,11 @@ export function AccountDetail({ id }: { id: string }) {
         {a.archived ? ' · Archived' : ''}
       </p>
       <p className={`hero-amount num ${b < 0 ? 'neg' : ''}`} style={{ margin: 0 }}>
-        {fmtMoney(b, a.currency)}
+        <Secret hidden={Boolean(a.hideBalance)} shown={showBalance} onToggle={toggleBalance} label="balance">
+          {fmtMoney(b, a.currency)}
+        </Secret>
       </p>
-      {a.currency === 'USD' && <p className="hint">≈ {fmtMoney(toBDT(ledger, b, 'USD', today))}</p>}
+      {a.currency === 'USD' && (!a.hideBalance || showBalance) && <p className="hint">≈ {fmtMoney(toBDT(ledger, b, 'USD', today))}</p>}
       {a.type === 'card' && b < 0 && <p className="hint">Owed on this card. Pay the bill with a transfer from a bank.</p>}
       {a.type === 'savings' && (a.interestRate || a.maturityDate) && (
         <p className="hint">
@@ -196,7 +216,7 @@ export function AccountDetail({ id }: { id: string }) {
           ))}
         </div>
       ) : (
-        <p className="muted">No entries yet. Starting balance {fmtMoney(a.startingBalance, a.currency)} on {fmtDate(a.startDate)}.</p>
+        <p className="muted">No entries yet.{a.hideBalance ? '' : ` Starting balance ${fmtMoney(a.startingBalance, a.currency)} on ${fmtDate(a.startDate)}.`}</p>
       )}
     </section>
   );
@@ -234,6 +254,7 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
   const [balance, setBalance] = useState(existing ? amountInputValue(kind === 'loan' ? startAbs : existing.startingBalance) : '');
   const [startDate, setStartDate] = useState(existing?.startDate ?? ledger.settings.startDate ?? today);
   const [include, setInclude] = useState(existing?.includeInTotal ?? true);
+  const [hideBalance, setHideBalance] = useState(existing?.hideBalance ?? false);
   const [slot, setSlot] = useState(existing?.slot ?? 1 + (ledger.accounts.size % 6));
   const [note, setNote] = useState(existing?.note ?? '');
   const [phone, setPhone] = useState(existing?.phone ?? '');
@@ -258,6 +279,7 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
       startingBalance,
       startDate,
       includeInTotal: kind === 'money' ? include : true,
+      hideBalance: kind === 'money' && hideBalance ? true : undefined,
       archived: existing?.archived ?? false,
       slot,
       note: note.trim() || undefined,
@@ -362,6 +384,12 @@ export function AccountSheet({ kind, id, onClose, onCreated }: { kind: 'money' |
           <label className="check-row">
             <input type="checkbox" checked={include} onChange={(e) => setInclude(e.target.checked)} />
             <span>Count this in the Home total. Turn it off for savings you don't want to see every day, or money held for someone. The Accounts page always counts every account.</span>
+          </label>
+        )}
+        {kind === 'money' && (
+          <label className="check-row">
+            <input type="checkbox" checked={hideBalance} onChange={(e) => setHideBalance(e.target.checked)} />
+            <span>Hide the balance until I tap it, so people nearby can't see it.</span>
           </label>
         )}
         {error && <p className="error-text" role="alert">{error}</p>}

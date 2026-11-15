@@ -155,3 +155,46 @@ export function useViewport() {
   }, []);
   return { wide: w >= 900, xl: w >= 1280 };
 }
+
+/** How long a tapped-open amount stays visible before it hides itself again. */
+const REVEAL_MS = 30_000;
+
+/** Shown/hidden state for amounts kept from people looking over your shoulder. Hides again after 30 seconds. */
+export function useReveal(): [boolean, () => void] {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!shown) return;
+    const t = setTimeout(() => setShown(false), REVEAL_MS);
+    return () => clearTimeout(t);
+  }, [shown]);
+  return [shown, () => setShown((v) => !v)];
+}
+
+/**
+ * An amount that, when `hidden`, shows dots until tapped. Works inside other
+ * buttons (it stops the tap from also opening the row). Pass `shown` and
+ * `onToggle` to reveal several amounts together.
+ */
+export function Secret({ hidden, children, shown, onToggle, label = 'amount' }: { hidden: boolean; children: ReactNode; shown?: boolean; onToggle?: () => void; label?: string }) {
+  const [own, toggleOwn] = useReveal();
+  if (!hidden) return <>{children}</>;
+  const isShown = shown ?? own;
+  const toggle = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (onToggle ?? toggleOwn)();
+  };
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      className="secret"
+      aria-label={isShown ? `Hide ${label}` : `Show ${label}`}
+      onClick={toggle}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(e)}
+    >
+      {isShown ? children : <span className="secret-dots" aria-hidden="true">••••••</span>}
+      <Icon name={isShown ? 'eye-off' : 'eye'} />
+    </span>
+  );
+}

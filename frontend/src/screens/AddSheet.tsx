@@ -245,7 +245,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
           .filter(([aid]) => aid !== exclude)
           .map(([aid, a]) => (
             <option key={aid} value={aid}>
-              {a.name} ({fmtMoney(bals.get(aid) ?? 0, a.currency)})
+              {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
             </option>
           ))}
       </select>

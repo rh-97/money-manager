@@ -22,6 +22,8 @@ export interface Account {
   startingBalance: number;
   startDate: string; // YYYY-MM-DD
   includeInTotal: boolean;
+  /** Show dots instead of the balance until tapped (for people looking over your shoulder). */
+  hideBalance?: boolean;
   archived: boolean;
   slot: number; // colour slot 1-6
   note?: string;
