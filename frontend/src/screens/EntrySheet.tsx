@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { amountInputValue, fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
-import { accountLabel } from '../money/calc.ts';
+import { accountLabel, DIRECT, groupParts } from '../money/calc.ts';
 import { uncombine } from '../money/actions.ts';
 import type { Entry } from '../money/types.ts';
-import { describeEntry, useApp, type Change } from '../ui/ctx.tsx';
+import { describeEntry, describeGroup, useApp, type Change } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
 import { AmountInput, Field, Sheet } from '../ui/kit.tsx';
 
@@ -12,7 +12,10 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
   const e = ledger.entries.get(id);
   const [editing, setEditing] = useState(false);
   if (!e) return null;
-  const v = describeEntry(ledger, e);
+  // A split payment (records saved together) is shown and deleted as a whole.
+  const parts = e.groupId ? groupParts(ledger, e.groupId) : [];
+  const isGroup = parts.length > 1;
+  const v = (isGroup && describeGroup(ledger, e.groupId!)) || describeEntry(ledger, e);
   const acct = ledger.accounts.get(e.accountId);
   const to = e.toAccountId ? ledger.accounts.get(e.toAccountId) : undefined;
   const children = [...ledger.entries].filter(([, c]) => c.parentId === id && !c.deletedAt);
@@ -29,7 +32,10 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
 
   async function remove() {
     const stamp = new Date().toISOString();
-    const changes: Change[] = [[id, e!] as [string, Entry], ...children].map(([cid, c]) => ({ id: cid, type: 'entry' as const, value: { ...c, deletedAt: stamp } }));
+    const own = isGroup ? parts : [[id, e!] as [string, Entry]];
+    const ownIds = new Set(own.map(([pid]) => pid));
+    const kids = [...ledger.entries].filter(([, c]) => c.parentId && ownIds.has(c.parentId) && !c.deletedAt);
+    const changes: Change[] = [...own, ...kids].map(([cid, c]) => ({ id: cid, type: 'entry' as const, value: { ...c, deletedAt: stamp } }));
     if (await save(changes, 'Moved to Recently deleted')) onClose();
   }
 
@@ -54,11 +60,11 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
               <span className="muted">Date</span>
               <span>{fmtDate(e.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
-            <div className="kv">
+            {!isGroup && <div className="kv">
               <span className="muted">{e.kind === 'transfer' ? 'From' : acct?.kind === 'loan' && e.loanAction !== 'writeoff' ? (e.kind === 'income' ? 'Received by' : 'Paid by') : 'Account'}</span>
-              <span>{acct ? accountLabel(acct) : 'Deleted account'}</span>
-            </div>
-            {to && (
+              <span>{e.accountId === DIRECT ? 'No account (paid directly)' : acct ? accountLabel(acct) : 'Deleted account'}</span>
+            </div>}
+            {to && !isGroup && (
               <div className="kv">
                 <span className="muted">To</span>
                 <span>
@@ -97,13 +103,33 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
             {(e.kind === 'expense' || e.kind === 'income') && !touchesMoney && e.loanAction !== 'writeoff' && (
               <p className="small-muted">Counts as {e.kind === 'income' ? 'income' : 'spending'}. None of your accounts changed.</p>
             )}
+            {isGroup && (
+              <>
+                <p className="type-sub">Saved together</p>
+                <div className="rows">
+                  {parts.map(([pid, pe]) => {
+                    const pv = describeEntry(ledger, pe);
+                    return (
+                      <div key={pid} className="row">
+                        {pv.icon}
+                        <span className="row-main">
+                          <span className="row-title">{pv.title}</span>
+                          <span className="row-sub">{pv.sub}</span>
+                        </span>
+                        <span className="row-amt num">{pv.amount}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             {e.combinedFrom && <p className="small-muted">Made by combining two entries.{undo ? '' : ' The originals are no longer kept, so it can’t be undone.'}</p>}
           </div>
           {e.loanAction === 'offset' && <p className="small-muted">To change a cancel-out, delete it and cancel out again from the Loans page.</p>}
           <div className={e.loanAction === 'offset' ? '' : 'two'}>
             {e.loanAction !== 'offset' && (
               <button className="btn ghost" onClick={() => setEditing(true)}>
-                <Icon name="edit" /> Edit
+                <Icon name="edit" /> {isGroup ? 'Edit this part' : 'Edit'}
               </button>
             )}
             <button className="btn ghost" onClick={() => void remove()}>
@@ -115,7 +141,8 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
               <Icon name="back" /> Undo combine
             </button>
           )}
-          {children.length > 0 && <p className="small-muted">Deleting also removes the linked {children.length === 1 ? 'entry' : 'entries'} above.</p>}
+          {isGroup && <p className="small-muted">Deleting removes all {parts.length} parts{children.length ? ' and their fees' : ''}.</p>}
+          {!isGroup && children.length > 0 && <p className="small-muted">Deleting also removes the linked {children.length === 1 ? 'entry' : 'entries'} above.</p>}
         </>
       )}
     </Sheet>

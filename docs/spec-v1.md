@@ -274,7 +274,24 @@ Every money event is an **entry**.
 - **Note** (optional)
 - **Tags** (optional) *(extra 3, later)*
 
-### 6.1 Entry types
+### 6.1 Adding an entry: From and To
+
+The ＋ screen records every entry the same way: **money moves From one or more sources To one destination.** The app works out which kind of entry that is (the table below), so there is no type to choose first. Design: `docs/design/mockup-from-to.html`.
+
+- **From** (one or more sources): my accounts, open loans (6.6), **Income**, **+ New loan** (a new loan where I owe them).
+- **To** (exactly one): my accounts, open loans, **Expense**, **+ New loan** (a new loan where they owe me).
+- **More than one source** only when money goes out (spending, lending, paying back). **＋ Add another source** adds a line; each line has its own amount, and each of my own accounts its own optional fee. If the only source is a person who owes me less than the amount, the app fills in what they owe and adds a line for the rest.
+- **Lists** show only open loans; settled loans are left out (reuse one from the Loans page). Something already on the other side is greyed out ("already on the other side"), and Income can only be picked once.
+- **+ New loan** asks **Who** (people already in Loans are suggested; a typed name that matches one uses its spelling, so it groups with them) and **What it's for** (defaults to the note).
+- **Fields appear only when needed:** the amount (one box for one source, one per line for several); **what kind of income** when Income is a source; **spent on** when To is Expense (the eight most used categories, then More…; **Written-off Loans** only when a person who owes me is a source); **amount received** when the currencies differ (plus "use this rate as my dollar rate" between my own accounts); **of which interest** when paying back a loan from my account, or being paid back into it; a **fee** for each of my own accounts that pays; date and note.
+- **A sentence above Save** says what is being recorded, one line per source, e.g. *"Rafi pays ৳7,000 for Eating Out for you, out of what they owe you."*, *"You spend ৳3,000 on Eating Out from Cash."*, *"Plus a ৳20 fee from bKash (Fees & charges)."*
+- **Warnings** (Save becomes "Save anyway"): a person pays more than they owe me; I pay back more than I owe; one of my accounts would go below zero; a future date. **Not allowed:** the same account on both sides; mixing taka and dollar sources; more than one source in a currency exchange.
+- **Starting point:** To starts as **Expense** and From as the last of my accounts I used on this device. Buttons elsewhere open it filled in: an account's **Add entry** (From that account), a loan's **Repay** (that loan on the right side, with what's left as the amount), **Lend** / **Borrow** (that loan as To / From), **Write off** (From the loan → Written-off Loans, or From Income (Gift) → the loan when the lender forgave it).
+- **Quick start:** **Earned** (From = Income, To left to choose) and **Fix a balance** (6.4). No others: Expense is already the default, and the rest would only pre-scroll a list.
+- **Saved together:** several sources, or income paid straight to an expense, are saved as separate records that share a group. History and Home's Recent show them as **one row** ("Dinner · paid by Rafi ৳7,000 + Cash ৳3,000"); the details list the parts, and **Delete** removes all of them. Each account's or loan's own history shows only its part.
+- **Income paid straight to an expense** (e.g. my employer pays my rent): an income record and an expense record, both counted in Stats, touching none of my accounts.
+
+#### What gets recorded
 
 | Type | Fields | Effect |
 |---|---|---|
@@ -288,7 +305,7 @@ Every money event is an **entry**.
 | **Write off** | Loan account | Clears what's left on a loan that will never be repaid. See 7.5. |
 | **Balance correction** | Money account, the real balance | See 6.4. |
 
-**Behind the scenes:** Lend, Borrow and Repay are **transfers between a money account and a loan account**. The ＋ menu still shows them as their own buttons with plain wording, so you never have to think "transfer from Rahim".
+**Behind the scenes:** Lend, Borrow and Repay are **transfers between a money account and a loan account**; the From / To screen picks the right one (money to a loan I owe = repay, otherwise lend; money from a loan that owes me = repay, otherwise borrow), so you never have to think "transfer from Rahim".
 
 ### 6.2 Fees
 
@@ -330,7 +347,7 @@ Every money event is an **entry**.
 
 ### 6.6 People as accounts
 
-Every person or organization in Loans is an account too. Its balance says where I stand with them: positive = they owe me (or are holding my money), negative = I owe them, zero = settled. So **wherever a form asks for one of my accounts, it also offers people**, for events where money went to or came from someone else on my behalf. None of my own accounts changes.
+Every person or organization in Loans is an account too. Its balance says where I stand with them: positive = they owe me (or are holding my money), negative = I owe them, zero = settled. So **people are offered wherever an account can be picked** (in From / To, 6.1, they are simply listed under *People*), for events where money went to or came from someone else on my behalf. None of my own accounts changes. The table below shows what each combination means.
 
 | Form | Field | People group | Example |
 |---|---|---|---|
@@ -474,8 +491,9 @@ When I owe someone and they also owe me, the two can be cancelled against each o
 
 - Expense and income categories are separate.
 - Each new user gets **default categories**, which they can rename, recolour, add to, hide or delete:
-  - **Expense:** Food & Groceries, Eating Out, Transport, Rent, Bills & Utilities, Mobile & Internet, Shopping, Clothing, Health, Education, Family, Gifts & Donations, Entertainment, Travel, Personal Care, **Fees & Charges**, **Interest Paid**, **Written-off Loans**, Other
-  - **Income:** Salary, Business, Freelance, Interest, Gift, Other
+  - **Expense:** Food, Groceries, Eating Out, Transport, Rent, Bills & Utilities, Mobile & Internet, Shopping, Clothing, Health, Education, Family, Gifts & Donations, Entertainment, Travel, Personal Care, **Fees & Charges**, **Interest Paid**, **Written-off Loans**, Other
+  - **Income:** Salary, Business, Freelance, Bonus, Refund, Rent Received, Interest, Gift, Other
+  - Also added for everyone (20 Nov 2026) if they don't already have one by that name: Groceries, Electricity, Gas & Water, Charity & Zakat, Household; Bonus, Refund, Rent Received. Existing users keep "Food & Groceries".
 - Categories are one level only in v1 (no sub-categories). Tags *(extra 3, later)* will cover cross-cutting grouping.
 - Deleting a category that has entries requires choosing another category to move those entries to.
 
@@ -539,7 +557,7 @@ When I owe someone and they also owe me, the two can be cancelled against each o
 | **Login** | Username and password · **"Forgot password?"**, which explains the two options: use your recovery key, or ask the admin (admin recovery users only) |
 | **Setup** | First-login setup (section 5) |
 | **Home** | **Money I have** (money accounts counted in the Home total, in BDT) · **Net worth** (money I have + owed to me − I owe, counting only loans shown on Home) · **Loans card** (7.8) · the balances of accounts set to **Show on Home** (tap to open; one shown but not counted says "not in total") · if a counted account hides its balance, the Home totals show dots until tapped · this month's income vs. spending · recurring entries waiting to be confirmed *(extra 2, later)* · last 10 entries |
-| **Add entry (＋)** | First choose a type (Expense · Income · Transfer · Lend · Borrow · Repay · More…), then a short form for that type. Quick-add favourites appear on top *(extra 1, later)*. Opens as a bottom sheet on phones and a dialog on PC. |
+| **Add entry (＋)** | **From / To** (6.1): pick where the money comes from and where it goes, with a sentence saying what is recorded. Quick start: **Earned**, **Fix a balance**. Quick-add favourites appear on top *(extra 1, later)*. Opens as a bottom sheet on phones and a dialog on PC. |
 | **History** | All entries, newest first, grouped by day · search by note or amount · filter by date range, type, account (money or loan), category, tag · totals for the filtered set · export *(extra 5, later)* |
 | **Accounts** | **Money accounts only.** **All my money**: the grand total of every money account, shown as dots until the card is tapped, with a total per type inside it · accounts grouped by type, each group with its total (always shown, but leaving out hidden balances — "+ 1 hidden" — until they're tapped open) · balances hidden per account until tapped (4.1); shown amounts hide again after 30 seconds · **Add up**: pick accounts or whole groups to see their combined total, for that view only · add / edit / archive · account detail shows that account's own history and a **Correct balance** button · **PIN lock** (3.5): set, change or turn off at the bottom of the page; when on, the tab and every account page ask for the PIN, and **Lock** at the top locks it again |
 | **Loans** | **Loan accounts only:** *I owe* / *Owed to me* tabs, cards with the loan's reason as the headline and progress bars (loans kept off Home are marked "not on Home"), **grouped by person** with an overall line and **Cancel out** (7.9), the Settled list (grouped the same way), and loan account pages (7.8) · **Existing loan** adds a loan owed from before, without moving money |
@@ -803,3 +821,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 16 Nov 2026 | **Show on Home** for money accounts (4.1), separate from "Include in total", at the owner's request. **Card contrast** dial in Settings > Look (11), after the owner approved a mockup (`docs/design/mockup-contrast.html`); the default is now *Medium*, slightly more contrast than before (*Original*). **UI fix:** icons in link-style buttons (e.g. "Delete this account") are centred on the text. |
 | 19 Nov 2026 | **UI fix:** entry rows (Home's Recent, History, account and loan histories) had lost their spacing and divider lines; rows now have 12 px above and below, a small gap between title and subtitle, and roomier detail rows in the entry sheet. |
 | 20 Nov 2026 | **People as accounts** (6.6) and **Combining two entries** (6.7), at the owner's request: people in Loans can stand in for an account in Expense, Income, Repay, Lend and Borrow (e.g. a friend pays someone I owe; a client pays my uncle), and two entries that passed through one account can be combined into one direct entry, with undo. Rollback point before this change: tag `before-people-as-accounts`. |
+| 20 Nov 2026 | **From / To Add screen** (6.1), at the owner's request after a clickable mockup: one screen where money moves From one or more sources (accounts, open loans, Income, + New loan) To one destination (accounts, open loans, Expense, + New loan), with a sentence saying what is recorded, fields only when needed, a fee per source, automatic split when a person owes less, and split records shown as one. Replaces the type buttons; quick start is Earned and Fix a balance. Settled loans are left out of the lists. New categories for everyone (8). Rollback point: tag `before-from-to`. |

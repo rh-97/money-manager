@@ -25,8 +25,12 @@ export function liveEntries(l: Ledger): IdEntry[] {
     .sort(([, a], [, b]) => (a.date === b.date ? a.createdAt.localeCompare(b.createdAt) : a.date.localeCompare(b.date)));
 }
 
+/** Income paid straight to an expense touches no account: both records use this placeholder account id. */
+export const DIRECT = 'direct';
+
 /** How an entry changes each account it touches (in that account's currency). */
 export function effects(e: Entry): { accountId: string; delta: number }[] {
+  if (e.accountId === DIRECT) return [];
   switch (e.kind) {
     case 'expense':
       return [{ accountId: e.accountId, delta: -e.amount }];
@@ -409,6 +413,7 @@ export function combinePlan(l: Ledger, aId: string, bId: string): CombinePlan {
     if (e.parentId || hasChildren(id)) return { ok: false, reason: 'Entries with a fee or interest attached can’t be combined.' };
     if (e.loanAction === 'writeoff' || e.loanAction === 'offset') return { ok: false, reason: 'Write-offs and cancel-outs can’t be combined.' };
     if (e.toAmount !== undefined) return { ok: false, reason: 'Currency exchanges can’t be combined.' };
+    if (e.groupId || e.accountId === DIRECT) return { ok: false, reason: 'Entries saved together (a split payment) can’t be combined.' };
   }
   const ea = ends(a)!;
   const eb = ends(b)!;
@@ -442,4 +447,20 @@ export function combinePlan(l: Ledger, aId: string, bId: string): CombinePlan {
   const leftover = inflow.amount > amount ? rest(inflow) : outflow.amount > amount ? rest(outflow) : null;
   for (const k of Object.keys(combined) as (keyof Entry)[]) if (combined[k] === undefined) delete combined[k];
   return { ok: true, middle, amount, inflowId, outflowId, combined, leftover };
+}
+
+/** Lists show records saved together (a split payment) once: the first part stands for the group. */
+export function collapseGroups(list: IdEntry[]): IdEntry[] {
+  const seen = new Set<string>();
+  return list.filter(([, e]) => {
+    if (!e.groupId) return true;
+    if (seen.has(e.groupId)) return false;
+    seen.add(e.groupId);
+    return true;
+  });
+}
+
+/** The live records saved together with this group id, oldest first. */
+export function groupParts(l: Ledger, groupId: string): IdEntry[] {
+  return liveEntries(l).filter(([, e]) => e.groupId === groupId);
 }

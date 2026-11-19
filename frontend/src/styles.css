@@ -436,3 +436,41 @@ body { margin: 0; }
 .row.row-btn.picked .pick-box { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .combine-bar { flex-wrap: wrap; }
 .combine-bar .pick-count { flex: 1 1 120px; color: var(--hero-ink); }
+
+/* ---------- Add: From / To (spec 6.1) ---------- */
+.quick-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.quick-row button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-weight: 600; font-size: 13.5px; }
+.quick-row button svg.i { width: 16px; height: 16px; }
+.quick-row button:hover { border-color: var(--accent); }
+.side-head { display: flex; justify-content: space-between; align-items: baseline; }
+.side-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.pick-btn, .pick-opt { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md); padding: 9px 12px; min-height: 54px; }
+.pick-btn:hover { border-color: var(--accent); }
+.pick-btn.empty { border-style: dashed; color: var(--muted); }
+.pick-btn > svg.i:last-child { color: var(--faint); width: 16px; height: 16px; }
+.pick-ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); }
+.pick-ic svg.i { width: 18px; height: 18px; }
+.pick-ic.pos { background: var(--pos-soft); color: var(--pos); }
+.pick-ic.neg { background: var(--neg-soft); color: var(--neg); }
+.pick-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pick-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-opt { border: 0; min-height: 50px; padding: 7px 8px; }
+.pick-opt:hover:not(:disabled), .pick-opt[aria-pressed="true"] { background: var(--surface-2); }
+.pick-opt:disabled { opacity: .45; cursor: not-allowed; }
+.pick-group { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 12px 4px 2px; }
+.src-line { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px; grid-template-areas: "pick pick x" "amt fee ."; gap: 6px 8px; align-items: center; padding-bottom: 6px; }
+.src-line.single { grid-template-columns: 1fr; grid-template-areas: "pick"; padding-bottom: 0; }
+.src-line > .pick-btn { grid-area: pick; min-width: 0; }
+.src-line > .line-x { grid-area: x; width: 40px; height: 40px; }
+.src-line > .mini { display: flex; flex-direction: column; gap: 3px; }
+.src-line > .mini.amt { grid-area: amt; } .src-line > .mini.fee { grid-area: fee; }
+.src-line > .mini span { font-size: 12px; font-weight: 600; color: var(--muted); }
+.src-line > .mini input { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 0 12px; height: 44px; width: 100%; }
+.sub-box { background: var(--surface-2); border-radius: var(--r-md); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.flow-down { display: flex; justify-content: center; color: var(--faint); margin: -6px 0; }
+.say { background: var(--surface-2); border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.say-lead { margin: 0; font-weight: 600; }
+.say ul { margin: 0; padding-left: 18px; }
+.warn-line { margin: 0; align-items: flex-start; justify-content: flex-start; background: color-mix(in srgb, #e8a33d 20%, var(--surface)); }
+.warn-line svg.i { flex: none; width: 17px; height: 17px; margin-top: 1px; }

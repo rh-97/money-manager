@@ -2,7 +2,7 @@ import type { Category, Settings } from './types.ts';
 
 /** Default categories for a new user (spec section 8). Users can rename, hide or add. */
 export const DEFAULT_CATEGORIES: Omit<Category, 'sortOrder'>[] = [
-  { kind: 'expense', name: 'Food & Groceries', slot: 1, icon: 'cart', hidden: false },
+  { kind: 'expense', name: 'Food', slot: 1, icon: 'cart', hidden: false },
   { kind: 'expense', name: 'Eating Out', slot: 4, icon: 'cup', hidden: false },
   { kind: 'expense', name: 'Transport', slot: 5, icon: 'bus', hidden: false },
   { kind: 'expense', name: 'Rent', slot: 6, icon: 'home', hidden: false },
@@ -27,6 +27,21 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'sortOrder'>[] = [
   { kind: 'income', name: 'Interest', slot: 4, icon: 'percent', hidden: false, system: 'interest' },
   { kind: 'income', name: 'Gift', slot: 5, icon: 'gift', hidden: false, system: 'gift' },
   { kind: 'income', name: 'Other', slot: 0, icon: 'dots', hidden: false },
+];
+
+/**
+ * Categories added later (20 Nov 2026). Every user gets any of these they don't already
+ * have (matched by name), so they can be picked in the Add screen; each can be hidden.
+ */
+export const EXTRA_CATEGORIES: Omit<Category, 'sortOrder'>[] = [
+  { kind: 'expense', name: 'Groceries', slot: 1, icon: 'cart', hidden: false },
+  { kind: 'expense', name: 'Electricity', slot: 3, icon: 'bolt', hidden: false },
+  { kind: 'expense', name: 'Gas & Water', slot: 3, icon: 'bolt', hidden: false },
+  { kind: 'expense', name: 'Charity & Zakat', slot: 5, icon: 'heart', hidden: false },
+  { kind: 'expense', name: 'Household', slot: 2, icon: 'home', hidden: false },
+  { kind: 'income', name: 'Bonus', slot: 3, icon: 'in', hidden: false },
+  { kind: 'income', name: 'Refund', slot: 1, icon: 'in', hidden: false },
+  { kind: 'income', name: 'Rent Received', slot: 6, icon: 'home', hidden: false },
 ];
 
 export function defaultSettings(): Settings {

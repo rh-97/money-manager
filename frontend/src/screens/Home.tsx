@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmtDate, fmtMoney } from '../lib/format.ts';
-import { accountLabel, shownOnHome, liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
+import { accountLabel, collapseGroups, shownOnHome, liveEntries, loanSummary, monthName, monthRange, periodStats, totals, addMonths } from '../money/calc.ts';
 import { EntryRow, useApp, useBalances } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
 import { Secret, useReveal } from '../ui/kit.tsx';
@@ -17,7 +17,7 @@ export function HomeScreen() {
     const [f, to] = monthRange(addMonths(month, -1));
     return periodStats(ledger, f, to);
   }, [ledger, month]);
-  const recent = useMemo(() => liveEntries(ledger).reverse().slice(0, xl ? 10 : 5), [ledger, xl]);
+  const recent = useMemo(() => collapseGroups(liveEntries(ledger).reverse()).slice(0, xl ? 10 : 5), [ledger, xl]);
   const loans = useMemo(
     () =>
       [...ledger.accounts]
@@ -192,7 +192,7 @@ export function HomeScreen() {
       {recent.length ? (
         <div className="rows">
           {recent.map(([id, e]) => (
-            <EntryRow key={id} id={id} e={e} />
+            <EntryRow key={id} id={id} e={e} asGroup />
           ))}
         </div>
       ) : (

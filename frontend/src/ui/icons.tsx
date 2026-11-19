@@ -34,6 +34,8 @@ const PATHS: Record<string, string> = {
   back: '<path d="M15 6l-6 6 6 6"/>',
   scale: '<path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
   swap: '<path d="M7 4v14M4 15l3 3 3-3M17 20V6M14 9l3-3 3 3"/>',
+  down: '<path d="M12 4v15M6 13l6 6 6-6"/>',
+  alert: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.5"/>',
   gift: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M12 9v11M3.5 9h17M12 9S10 4.5 7.8 5.5C6 6.4 7.5 9 12 9zm0 0s2-4.5 4.2-3.5C18 6.4 16.5 9 12 9z"/>',
   book: '<path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM17 20h2V7M5 17a3 3 0 0 1 3-3h9"/>',
   star: '<path d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z"/>',

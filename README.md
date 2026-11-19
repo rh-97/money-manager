@@ -11,7 +11,7 @@
 ## What you can do
 
 - **Track every account in one place:** bank accounts, mobile wallets (like bKash or Nagad), cash in your pocket or in a drawer, credit cards, fixed deposits. Create as many as you like.
-- **Record what happens in a few taps:** expenses, income, moving money between your own accounts (with any fee), and changing taka into dollars or back.
+- **Record anything as From → To:** pick where the money came from and where it went (your accounts, people, Income or Expense), and a sentence tells you what's being recorded. One screen covers spending, income, moving money, exchanging taka and dollars, lending, borrowing and paying back, and a payment can come from several places at once, each with its own fee.
 - **Never forget a loan:** lend or borrow money, then record repayments bit by bit, including partial payments, interest and forgiving what's left. Give each loan a reason ("Fridge") so two loans with the same friend are easy to tell apart; a person's loans are grouped together, and if you owe each other you can **cancel out** the amounts without any money moving. "I owe" and "Owed to me" are always shown clearly apart.
 - **When someone else pays or gets paid for you:** a friend pays your bill, a friend who owes you pays someone you owe, or a client pays your uncle directly. Pick the person instead of an account; the loans and your spending or income update, and your accounts stay untouched.
 - **Fix records entered the long way:** combine two entries that only passed through an account (e.g. a repayment into Cash that went straight to a bill) into one entry that shows what really happened. No total changes, and it can be undone.

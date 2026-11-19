@@ -1,644 +1,521 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { randomId } from '@mm/shared';
+import { useMemo, useState, type FormEvent } from 'react';
 import { amountInputValue, fmtMoney, parseAmount } from '../lib/format.ts';
-import { accountLabel, effects, loanSummary, personKey } from '../money/calc.ts';
-import { correction, expenseOrIncome, repay, transfer, writeOff, type NewEntry } from '../money/actions.ts';
-import type { Account, Settings } from '../money/types.ts';
-import { useApp, useBalances, type AddKind, type AddPreset, type Change } from '../ui/ctx.tsx';
-import { Icon } from '../ui/icons.tsx';
+import { accountLabel } from '../money/calc.ts';
+import { correction, systemCategoryId } from '../money/actions.ts';
+import { crossCurrency, interestAllowed, pickCurrency, planFromTo, problems, sentences, warnings, type FromToInput, type Pick } from '../money/fromto.ts';
+import type { Settings } from '../money/types.ts';
+import { useApp, useBalances, type AddPreset, type Change } from '../ui/ctx.tsx';
+import { ACCOUNT_ICONS, Icon } from '../ui/icons.tsx';
 import { AmountInput, Field, Sheet } from '../ui/kit.tsx';
 
-/** Lend/borrow without a money account: a loan that was already owed before. */
-const NO_ACCOUNT = 'none';
-/** Expense paid by someone not yet in Loans: creates their loan account. */
-const NEW_PAYER = 'new-payer';
-
-const TYPES: [AddKind, string, string, string][] = [
-  ['expense', 'Expense', 'out', 'Money spent'],
-  ['income', 'Income', 'in', 'Salary, other'],
-  ['transfer', 'Transfer', 'transfer', 'Between accounts'],
-  ['lend', 'Lend', 'out', 'Give a loan'],
-  ['borrow', 'Borrow', 'in', 'Take a loan'],
-  ['repay', 'Repay', 'check', 'Pay back or get back'],
-];
-const MORE: [AddKind, string, string, string][] = [
-  ['exchange', 'Exchange', 'swap', '৳ and $'],
-  ['correction', 'Correction', 'scale', 'Fix a balance'],
-  ['writeoff', 'Write off', 'gift', 'Forgive a loan'],
-];
-const TITLES: Record<AddKind, string> = {
-  expense: 'Expense',
-  income: 'Income',
-  transfer: 'Transfer',
-  exchange: 'Currency exchange',
-  lend: 'Lend',
-  borrow: 'Borrow',
-  repay: 'Repay',
-  writeoff: 'Write off',
-  correction: 'Correct balance',
+/** The last of my accounts used as a source, so the next entry starts there (this device only). */
+const LAST_FROM = 'mm-last-from';
+const readLastFrom = (): string | null => {
+  try {
+    return localStorage.getItem(LAST_FROM);
+  } catch {
+    return null;
+  }
 };
 
+/** The Add screen (spec 6.1): money moves From one or more sources To one destination. */
 export function AddSheet({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
   const { wide } = useApp();
-  const [kind, setKind] = useState<AddKind | null>(preset.kind ?? null);
-  if (!kind)
+  const [fixing, setFixing] = useState(preset.kind === 'correction');
+  if (fixing)
     return (
-      <Sheet title="What happened?" onClose={onClose} wide={wide}>
-        <div className="type-grid">
-          {TYPES.map(([k, l, ic, sub]) => (
-            <button key={k} className="type-btn" onClick={() => setKind(k)}>
-              <Icon name={ic} />
-              {l}
-              <small>{sub}</small>
-            </button>
-          ))}
-        </div>
-        <p className="type-sub">More</p>
-        <div className="type-grid">
-          {MORE.map(([k, l, ic, sub]) => (
-            <button key={k} className="type-btn" onClick={() => setKind(k)}>
-              <Icon name={ic} />
-              {l}
-              <small>{sub}</small>
-            </button>
-          ))}
-        </div>
+      <Sheet title="Fix a balance" onClose={onClose} onBack={preset.kind === 'correction' ? undefined : () => setFixing(false)} wide={wide}>
+        <CorrectionForm accountId={preset.accountId} onDone={onClose} />
       </Sheet>
     );
   return (
-    <Sheet title={TITLES[kind]} onClose={onClose} onBack={preset.kind ? undefined : () => setKind(null)} wide={wide} label={`Add ${TITLES[kind]}`}>
-      <EntryForm kind={kind} preset={preset} onDone={onClose} />
+    <Sheet title="Add" onClose={onClose} wide={wide} label="Add an entry">
+      <FromToForm preset={preset} onFix={() => setFixing(true)} onDone={onClose} />
     </Sheet>
   );
 }
 
-function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset; onDone: () => void }) {
+interface Line {
+  pick: Pick | null;
+  amount: string;
+  fee: string;
+  /** Added by the app because a person owes less than the amount. */
+  auto?: boolean;
+}
+
+function FromToForm({ preset, onFix, onDone }: { preset: AddPreset; onFix: () => void; onDone: () => void }) {
   const { ledger, today, save } = useApp();
   const bals = useBalances();
-  const accounts = [...ledger.accounts].sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
-  const money = accounts.filter(([, a]) => a.kind === 'money' && (!a.archived || a === ledger.accounts.get(preset.accountId ?? '')));
-  const loans = accounts.filter(([, a]) => a.kind === 'loan' && !a.archived);
-  const openLoans = useMemo(() => loans.map(([id, a]) => ({ id, a, s: loanSummary(ledger, id) })).filter((x) => x.s.status !== 'settled'), [ledger, loans.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Most-used categories first; the rest behind "More".
+  const accounts = useMemo(() => [...ledger.accounts].sort(([, a], [, b]) => a.sortOrder - b.sortOrder), [ledger.accounts]);
+  const money = accounts.filter(([, a]) => a.kind === 'money' && !a.archived);
+  const openLoans = accounts.filter(([id, a]) => a.kind === 'loan' && !a.archived && (bals.get(id) ?? 0) !== 0);
+  const people = [...new Set(accounts.filter(([, a]) => a.kind === 'loan').map(([, a]) => a.name.trim()))];
+
+  // ---------- Starting point: defaults, or what the button that opened this implies ----------
+  const initial = useMemo(() => {
+    const last = readLastFrom();
+    const ownStart: Pick | null = money.length ? { type: 'acct', id: money.some(([id]) => id === last) ? last! : money[0]![0] } : null;
+    const loanBal = preset.loanId ? (bals.get(preset.loanId) ?? 0) : 0;
+    const loanPick: Pick | null = preset.loanId ? { type: 'loan', id: preset.loanId } : null;
+    const s = { from: ownStart as Pick | null, to: { type: 'expense' } as Pick | null, total: '', expCat: '', incCat: '' };
+    switch (preset.kind) {
+      case 'expense':
+        if (preset.accountId) s.from = { type: 'acct', id: preset.accountId };
+        break;
+      case 'income':
+        s.from = { type: 'income' };
+        s.to = null;
+        break;
+      case 'transfer':
+      case 'exchange':
+        s.to = null;
+        break;
+      case 'lend':
+        s.to = loanPick ?? { type: 'new' };
+        break;
+      case 'borrow':
+        s.from = loanPick ?? { type: 'new' };
+        s.to = ownStart;
+        break;
+      case 'repay':
+        if (loanBal < 0) s.to = loanPick;
+        else [s.from, s.to] = [loanPick, ownStart];
+        s.total = amountInputValue(Math.abs(loanBal));
+        break;
+      case 'writeoff':
+        if (loanBal > 0) {
+          s.from = loanPick;
+          s.expCat = systemCategoryId(ledger.categories, 'writeoff') ?? '';
+        } else {
+          s.from = { type: 'income' };
+          s.to = loanPick;
+          s.incCat = systemCategoryId(ledger.categories, 'gift') ?? '';
+        }
+        s.total = amountInputValue(Math.abs(loanBal));
+        break;
+    }
+    return s;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [lines, setLines] = useState<Line[]>([{ pick: initial.from, amount: '', fee: '' }]);
+  const [total, setTotal] = useState(initial.total);
+  const [to, setTo] = useState<Pick | null>(initial.to);
+  const [expCat, setExpCat] = useState(initial.expCat);
+  const [incCat, setIncCat] = useState(initial.incCat);
+  const [received, setReceived] = useState('');
+  const [interest, setInterest] = useState('');
+  const [useRate, setUseRate] = useState(true);
+  const [date, setDate] = useState(today);
+  const [note, setNote] = useState('');
+  const [newFrom, setNewFrom] = useState({ name: '', purpose: '' });
+  const [newTo, setNewTo] = useState({ name: '', purpose: '' });
+  const [allCats, setAllCats] = useState(false);
+  const [picking, setPicking] = useState<{ side: 'from' | 'to'; index: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const multi = lines.length > 1;
+
+  // ---------- The input the money model works on ----------
+  const input: FromToInput = {
+    sources: lines.map((x, i) => ({ pick: x.pick, amount: (multi ? parseAmount(x.amount) : i === 0 ? parseAmount(total) : 0) ?? 0, fee: x.pick?.type === 'acct' ? (parseAmount(x.fee) ?? 0) : 0 })),
+    to,
+    date,
+    today,
+    note: note.trim() || undefined,
+    expenseCategoryId: to?.type === 'expense' ? expCat || undefined : undefined,
+    incomeCategoryId: lines.some((x) => x.pick?.type === 'income') ? incCat || undefined : undefined,
+    received: parseAmount(received) ?? undefined,
+    interest: parseAmount(interest) ?? undefined,
+    newFrom: lines.some((x) => x.pick?.type === 'new') ? newFrom : undefined,
+    newTo: to?.type === 'new' ? newTo : undefined,
+  };
+  const catName = (id?: string) => (id ? (ledger.categories.get(id)?.name ?? '') : '');
+  const errs = problems(ledger, input);
+  const warns = errs.length ? [] : warnings(ledger, input);
+  const said = sentences(ledger, input, catName);
+  const cur = input.sources.map((s) => pickCurrency(ledger, s.pick)).find(Boolean) ?? pickCurrency(ledger, to) ?? 'BDT';
+  const sym = cur === 'USD' ? '$' : '৳';
+  const cross = crossCurrency(ledger, input);
+  const showInterest = interestAllowed(ledger, input);
+  const hasIncome = lines.some((x) => x.pick?.type === 'income');
+  const hasNewFrom = lines.some((x) => x.pick?.type === 'new');
+  const fromLoanOwesMe = lines.some((x) => x.pick?.type === 'loan' && (bals.get(x.pick.id) ?? 0) > 0);
+
+  // ---------- Categories: most used first; "Written off" only when a person who owes you is a source ----------
   const usage = useMemo(() => {
     const n = new Map<string, number>();
     for (const e of ledger.entries.values()) if (e.categoryId && !e.parentId) n.set(e.categoryId, (n.get(e.categoryId) ?? 0) + 1);
     return n;
   }, [ledger]);
-  const cats = [...ledger.categories]
-    .filter(([, c]) => !c.hidden && c.system !== 'writeoff' && c.kind === (kind === 'income' ? 'income' : 'expense'))
-    .sort(([ia, a], [ib, b]) => (usage.get(ib) ?? 0) - (usage.get(ia) ?? 0) || a.sortOrder - b.sortOrder);
-  const [allCats, setAllCats] = useState(false);
-
-  const presetMoney = preset.accountId && ledger.accounts.get(preset.accountId)?.kind === 'money' ? preset.accountId : undefined;
-  const firstUsd = money.find(([, a]) => a.currency === 'USD')?.[0];
-  const firstBdt = money.find(([, a]) => a.currency === 'BDT')?.[0];
-  const [accountId, setAccountId] = useState<string>(presetMoney ?? (kind === 'exchange' ? (firstUsd ?? money[0]?.[0]) : money[0]?.[0]) ?? '');
-  const [toAccountId, setToAccountId] = useState<string>((kind === 'exchange' ? firstBdt : money.find(([id]) => id !== accountId)?.[0]) ?? '');
-  const [loanId, setLoanId] = useState<string>(preset.loanId ?? (kind === 'repay' || kind === 'writeoff' ? (openLoans[0]?.id ?? '') : (loans[0]?.[0] ?? 'new')));
-  const [newLoanName, setNewLoanName] = useState('');
-  const [newLoanPurpose, setNewLoanPurpose] = useState('');
-  // People already in Loans, so a new loan with the same person uses the same spelling (and groups with them).
-  const people = [...new Map(accounts.filter(([, a]) => a.kind === 'loan').map(([, a]) => [personKey(a.name), a.name.trim()])).values()];
-  const newName = () => {
-    const typed = newLoanName.trim().replace(/\s+/g, ' ');
-    return people.find((n) => personKey(n) === personKey(typed)) ?? typed;
-  };
-  const newPurpose = () => newLoanPurpose.trim() || undefined;
-  const [newLoanType, setNewLoanType] = useState<Account['type']>('person');
-  const [categoryId, setCategoryId] = useState<string>(cats[0]?.[0] ?? '');
-  const loanForRepay = openLoans.find((x) => x.id === loanId);
-  const [amount, setAmount] = useState(kind === 'repay' && loanForRepay ? amountInputValue(Math.abs(loanForRepay.s.balance)) : '');
-  const [toAmount, setToAmount] = useState('');
-  const [fee, setFee] = useState('');
-  const [interest, setInterest] = useState('');
-  const [date, setDate] = useState(today);
-  const [note, setNote] = useState('');
-  const [asGift, setAsGift] = useState(false);
-  const [useRate, setUseRate] = useState(true);
-  const [real, setReal] = useState(() => (presetMoney ? amountInputValue(bals.get(presetMoney) ?? 0) : ''));
-  const [error, setError] = useState<string | null>(null);
-  const [warnings, setWarnings] = useState<string[] | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const acct = ledger.accounts.get(accountId);
-  const toAcct = ledger.accounts.get(toAccountId);
-  const loan = loanId === 'new' ? undefined : ledger.accounts.get(loanId);
-  const sym = (a?: Account) => (a?.currency === 'USD' ? '$' : '৳');
-
-  if (!money.length && kind !== 'writeoff')
+  const catsOf = (kind: 'expense' | 'income') =>
+    [...ledger.categories]
+      .filter(([cid, c]) => c.kind === kind && !c.hidden && (c.system !== 'writeoff' || fromLoanOwesMe || cid === expCat) && c.system !== 'fees' && c.system !== 'interest_paid' && c.system !== 'interest')
+      .sort(([ia, a], [ib, b]) => (usage.get(ib) ?? 0) - (usage.get(ia) ?? 0) || a.sortOrder - b.sortOrder);
+  const catChips = (label: string, kind: 'expense' | 'income', value: string, set: (v: string) => void) => {
+    const list = catsOf(kind);
+    const shown = allCats ? list : list.slice(0, 8).concat(list.slice(8).filter(([cid]) => cid === value));
     return (
-      <div className="empty">
-        <p>Add an account first: a bank, bKash or your cash.</p>
+      <div className="field">
+        <label>{label}</label>
+        <div className="cat-pick">
+          {shown.map(([cid, c]) => (
+            <button key={cid} type="button" aria-pressed={value === cid} onClick={() => set(value === cid ? '' : cid)}>
+              <span className="swatch" style={{ width: 8, height: 8, borderRadius: 2, background: c.slot ? `var(--c${c.slot})` : 'var(--c-other)' }} />
+              {c.name}
+            </button>
+          ))}
+          {!allCats && list.length > shown.length && (
+            <button type="button" onClick={() => setAllCats(true)}>
+              More…
+            </button>
+          )}
+        </div>
       </div>
     );
+  };
 
-  /** For lend/borrow: from and to, in transfer terms. */
-  function loanEnds(): { from: string; to: string; fromCur: string; toCur: string } {
-    const loanCur = loan?.currency ?? acct?.currency ?? 'BDT';
-    return kind === 'lend' ? { from: accountId, to: loanId, fromCur: acct!.currency, toCur: loanCur } : { from: loanId, to: accountId, fromCur: loanCur, toCur: acct!.currency };
-  }
-  const loanCurrencyDiffers = (kind === 'lend' || kind === 'borrow') && loan && acct && loan.currency !== acct.currency;
-  const transferCurrencyDiffers = (kind === 'transfer' || kind === 'exchange') && acct && toAcct && acct.currency !== toAcct.currency;
+  // ---------- Lines: auto split, add, remove ----------
+  /** If the only source is a person who owes you less than the amount, fill in what they owe and add a line for the rest. */
+  const autoSplit = (ls: Line[], t: string): Line[] | null => {
+    if (ls.length !== 1) return null;
+    const p = ls[0]!.pick;
+    const amt = parseAmount(t) ?? 0;
+    if (p?.type !== 'loan' || !amt) return null;
+    const owed = bals.get(p.id) ?? 0;
+    if (owed <= 0 || amt <= owed) return null;
+    return [
+      { pick: p, amount: amountInputValue(owed), fee: '' },
+      { pick: null, amount: amountInputValue(amt - owed), fee: '', auto: true },
+    ];
+  };
+  const applySplit = (ls: Line[], t: string) => {
+    const split = autoSplit(ls, t);
+    setLines(split ?? ls);
+  };
+  const addLine = () => setLines((ls) => [...(ls.length === 1 ? [{ ...ls[0]!, amount: total }] : ls), { pick: null, amount: '', fee: '' }]);
+  const removeLine = (i: number) =>
+    setLines((ls) => {
+      const next = ls.filter((_, j) => j !== i);
+      if (next.length === 1) {
+        setTotal(next[0]!.amount);
+        return [{ ...next[0]!, amount: '' }];
+      }
+      return next;
+    });
+  const setLine = (i: number, patch: Partial<Line>) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
-  function build(): { entries: NewEntry[]; extra: Change[] } | string {
-    const amt = parseAmount(amount);
-    const feeAmt = fee.trim() && acct?.kind !== 'loan' ? parseAmount(fee) : 0;
-    if (feeAmt === null) return 'The fee should be a number.';
-    const extra: Change[] = [];
-    switch (kind) {
-      case 'expense':
-      case 'income': {
-        if (!amt) return 'Enter an amount.';
-        if (!categoryId) return 'Choose a category.';
-        // Paid by someone else: the expense comes out of their loan account, so I owe them more.
-        let payFrom = accountId;
-        if (kind === 'expense' && accountId === NEW_PAYER) {
-          if (!newLoanName.trim()) return 'Who paid for it?';
-          payFrom = randomId();
-          const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: 'BDT', startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
-          extra.push({ id: payFrom, type: 'account', value });
-        }
-        return { entries: expenseOrIncome({ kind, date, amount: amt, accountId: payFrom, categoryId, note: note.trim() }), extra };
-      }
-      case 'transfer':
-      case 'exchange': {
-        if (!amt) return 'Enter an amount.';
-        if (!toAccountId || toAccountId === accountId) return 'Choose two different accounts.';
-        let to: number | undefined;
-        if (transferCurrencyDiffers) {
-          const t = parseAmount(toAmount);
-          if (!t) return `Enter the amount received in ${toAcct!.currency === 'USD' ? 'dollars' : 'taka'}.`;
-          to = t;
-          if (useRate) {
-            const bdtPerUsd = acct!.currency === 'USD' ? t / amt : amt / t;
-            extra.push(...ownRateChange(ledger.settings, ledger.settingsId, Math.round(bdtPerUsd * 100) / 100, date));
-          }
-        }
-        return { entries: transfer(ledger.categories, { date, amount: amt, from: accountId, to: toAccountId, toAmount: to, fee: feeAmt ?? 0, feeAccountId: accountId, note: note.trim() }), extra };
-      }
-      case 'lend':
-      case 'borrow': {
-        if (!amt) return 'Enter an amount.';
-        if (accountId === NO_ACCOUNT) {
-          // Owed from before: no money moves, so only the loan's starting balance changes.
-          const signed = kind === 'lend' ? amt : -amt;
-          if (loanId === 'new') {
-            if (!newLoanName.trim()) return kind === 'lend' ? 'Who owes you?' : 'Who do you owe?';
-            const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: 'BDT', startingBalance: signed, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
-            return { entries: [], extra: [{ id: randomId(), type: 'account', value }] };
-          }
-          if (!loan) return 'Choose a loan.';
-          const value: Account = { ...loan, startingBalance: loan.startingBalance + signed, startDate: date < loan.startDate ? date : loan.startDate };
-          return { entries: [], extra: [{ id: loanId, type: 'account', value }] };
-        }
-        let lid = loanId;
-        if (loanId === 'new') {
-          if (!newLoanName.trim()) return kind === 'lend' ? 'Who are you lending to?' : 'Who are you borrowing from?';
-          lid = randomId();
-          const value: Account = { kind: 'loan', type: newLoanType, name: newName(), purpose: newPurpose(), currency: acct!.currency, startingBalance: 0, startDate: date < today ? date : today, includeInTotal: true, archived: false, slot: 0, sortOrder: ledger.accounts.size };
-          extra.push({ id: lid, type: 'account', value });
-        }
-        let to: number | undefined;
-        if (loanCurrencyDiffers) {
-          const t = parseAmount(toAmount);
-          if (!t) return 'Enter the amount in the other currency too.';
-          to = t;
-        }
-        const ends = kind === 'lend' ? { from: accountId, to: lid } : { from: lid, to: accountId };
-        return { entries: transfer(ledger.categories, { date, amount: amt, ...ends, toAmount: to, fee: feeAmt ?? 0, feeAccountId: accountId, loanAction: kind, note: note.trim() }), extra };
-      }
-      case 'repay': {
-        if (!loanForRepay) return 'Choose a loan.';
-        if (!amt) return 'Enter the amount paid.';
-        if (loanForRepay.a.currency !== acct!.currency) return `This loan is in ${loanForRepay.a.currency === 'USD' ? 'dollars' : 'taka'}. Choose a ${loanForRepay.a.currency} account.`;
-        if (accountId === loanId) return 'Choose a different account or person.';
-        const int = interest.trim() && acct?.kind !== 'loan' ? parseAmount(interest) : 0;
-        if (int === null) return 'The interest should be a number.';
-        try {
-          return { entries: repay(ledger.categories, { date, loanId, moneyId: accountId, loanBalance: loanForRepay.s.balance, amount: amt, interest: int, fee: feeAmt ?? 0, note: note.trim() }), extra };
-        } catch (err) {
-          return (err as Error).message.replace('That is more than what is left on this loan.', `That's more than the ${fmtMoney(Math.abs(loanForRepay.s.balance), loanForRepay.a.currency)} left on this loan.`);
-        }
-      }
-      case 'writeoff': {
-        if (!loanForRepay) return 'Choose a loan.';
-        return { entries: writeOff(ledger.categories, { date, loanId, loanBalance: loanForRepay.s.balance, asGift, note: note.trim() }), extra };
-      }
-      case 'correction': {
-        const r = parseAmount(real, true);
-        if (r === null) return 'Enter the real balance.';
-        try {
-          return { entries: correction({ date, accountId, current: bals.get(accountId) ?? 0, real: r }), extra };
-        } catch (err) {
-          return (err as Error).message;
-        }
-      }
+  // ---------- Picking ----------
+  const samePick = (a: Pick | null, b: Pick | null) => !!a && !!b && a.type === b.type && ('id' in a ? 'id' in b && a.id === b.id : true);
+  const label = (p: Pick | null, side: 'from' | 'to'): { title: string; sub: string; icon: string; tone?: string } => {
+    if (!p) return { title: 'Choose…', sub: side === 'from' ? 'an account, a person, Income or a new loan' : 'an account, a person, Expense or a new loan', icon: 'dots' };
+    if (p.type === 'income') return { title: 'Income', sub: 'salary, freelance, a gift…', icon: 'in', tone: 'pos' };
+    if (p.type === 'expense') return { title: 'Expense', sub: 'shops, bills, gifts, charity…', icon: 'out', tone: 'neg' };
+    if (p.type === 'new') return { title: '+ New loan', sub: side === 'from' ? 'they pay or lend for you; you owe them' : 'you lend to them; they owe you', icon: 'plus' };
+    const a = ledger.accounts.get(p.id);
+    if (!a) return { title: 'Deleted', sub: '', icon: 'dots' };
+    const b = bals.get(p.id) ?? 0;
+    if (a.kind === 'loan') return { title: accountLabel(a), sub: b === 0 ? 'settled' : b > 0 ? `owes you ${fmtMoney(b, a.currency)}` : `you owe ${fmtMoney(-b, a.currency)}`, icon: ACCOUNT_ICONS[a.type] ?? 'person' };
+    return { title: a.name, sub: a.hideBalance ? 'balance hidden' : fmtMoney(b, a.currency), icon: ACCOUNT_ICONS[a.type] ?? 'wallet' };
+  };
+  const choose = (p: Pick) => {
+    if (!picking) return;
+    if (picking.side === 'to') setTo(p);
+    else {
+      const next = lines.map((x, j) => (j === picking.index ? { ...x, pick: p, auto: false } : x));
+      applySplit(next, total);
     }
+    setPicking(null);
+  };
+  const pickButton = (p: Pick | null, side: 'from' | 'to', index: number) => {
+    const v = label(p, side);
+    return (
+      <button type="button" className={`pick-btn${p ? '' : ' empty'}`} onClick={() => setPicking({ side, index })} aria-label={`${side === 'from' ? 'From' : 'To'}: ${v.title}`}>
+        <span className={`pick-ic${v.tone ? ` ${v.tone}` : ''}`}>
+          <Icon name={v.icon} />
+        </span>
+        <span className="pick-main">
+          <span className="pick-title">{v.title}</span>
+          <span className="pick-sub">{v.sub}</span>
+        </span>
+        <Icon name="chev" />
+      </button>
+    );
+  };
+
+  if (picking) {
+    const side = picking.side;
+    const others = side === 'from' ? [to] : lines.map((x) => x.pick);
+    const incomeTaken = side === 'from' && lines.some((x, j) => j !== picking.index && x.pick?.type === 'income');
+    const newTaken = side === 'from' && lines.some((x, j) => j !== picking.index && x.pick?.type === 'new');
+    const current = side === 'from' ? lines[picking.index]?.pick : to;
+    // A settled loan that a button opened this with stays listed so it can still be used.
+    const extraLoan = current?.type === 'loan' && !openLoans.some(([id]) => id === current.id) ? [[current.id, ledger.accounts.get(current.id)!] as const] : [];
+    const option = (p: Pick) => {
+      const v = label(p, side);
+      const taken = others.some((o) => samePick(o, p) && p.type !== 'new');
+      const disabled = taken || (p.type === 'income' && incomeTaken) || (p.type === 'new' && newTaken);
+      return (
+        <button key={'id' in p ? p.id : p.type} type="button" className="pick-opt" disabled={disabled} aria-pressed={samePick(current ?? null, p)} onClick={() => choose(p)}>
+          <span className={`pick-ic${v.tone ? ` ${v.tone}` : ''}`}>
+            <Icon name={v.icon} />
+          </span>
+          <span className="pick-main">
+            <span className="pick-title">{v.title}</span>
+            <span className="pick-sub">{disabled ? (taken ? 'already on the other side' : 'already picked') : v.sub}</span>
+          </span>
+        </button>
+      );
+    };
+    const settledCount = accounts.filter(([id, a]) => a.kind === 'loan' && !a.archived && (bals.get(id) ?? 0) === 0).length;
+    return (
+      <div className="col picker" style={{ gap: 4 }}>
+        <button type="button" className="back" onClick={() => setPicking(null)}>
+          <Icon name="back" /> {side === 'from' ? 'Where does the money come from?' : 'Where does the money go?'}
+        </button>
+        {option(side === 'from' ? { type: 'income' } : { type: 'expense' })}
+        <p className="pick-group">My accounts</p>
+        {money.map(([id]) => option({ type: 'acct', id }))}
+        <p className="pick-group">People (open loans)</p>
+        {[...openLoans, ...extraLoan].map(([id]) => option({ type: 'loan', id }))}
+        {option({ type: 'new' })}
+        {settledCount > 0 && <p className="small-muted" style={{ margin: '4px 8px' }}>{settledCount === 1 ? '1 settled loan is' : `${settledCount} settled loans are`} not listed. To reuse one, open it from Loans.</p>}
+      </div>
+    );
   }
 
-  function checkWarnings(entries: NewEntry[]): string[] {
-    const out: string[] = [];
-    if (date > today) out.push('The date is in the future.');
-    const after = new Map(bals);
-    for (const { value } of entries) for (const { accountId: id, delta } of effects(value)) after.set(id, (after.get(id) ?? 0) + delta);
-    for (const [id, v] of after) {
-      const a = ledger.accounts.get(id);
-      if (a?.kind === 'loan' && id === accountId && id !== loanId) {
-        // A person standing in for an account: warn when you'd end up on the other side with them.
-        const was = bals.get(id) ?? 0;
-        if (was > 0 && v < 0) out.push(`${a.name.trim()} owes you only ${fmtMoney(was, a.currency)}. After this you'd owe them ${fmtMoney(-v, a.currency)}.`);
-        if (was < 0 && v > 0) out.push(`You owe ${a.name.trim()} only ${fmtMoney(-was, a.currency)}. After this they'd owe you ${fmtMoney(v, a.currency)}.`);
-        continue;
-      }
-      if (!a || a.kind !== 'money' || a.type === 'card' || kind === 'correction') continue;
-      if (v < 0 && (bals.get(id) ?? 0) >= 0) out.push(`${a.name} would go below zero (${fmtMoney(v, a.currency)}).`);
-    }
-    return out;
-  }
-
-  async function submit(e: FormEvent, force = false) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    const r = build();
-    if (typeof r === 'string') return setError(r);
-    if (!force) {
-      const w = checkWarnings(r.entries);
-      if (w.length) return setWarnings(w);
-    }
+    if (errs.length) return;
     setBusy(true);
-    const changes: Change[] = [...r.extra, ...r.entries.map((n) => ({ id: n.id, type: 'entry' as const, value: n.value }))];
-    const main = r.entries[0]?.value;
-    const msg = !main
-      ? 'Loan from before added'
-      : kind === 'expense' || kind === 'income'
-        ? `Saved ${fmtMoney(main.kind === 'income' ? main.amount : -main.amount, acct?.currency, { sign: true })} · ${ledger.categories.get(categoryId)?.name ?? ''}`
-        : kind === 'correction'
-          ? `${acct?.name} corrected by ${fmtMoney(main.amount, acct?.currency, { sign: true })}`
-          : viaPerson && main.toAccountId && ledger.accounts.get(main.toAccountId)?.kind === 'loan' && ledger.accounts.get(main.accountId)?.kind === 'loan'
-            ? `Saved: ${ledger.accounts.get(main.accountId)!.name.trim()} paid ${ledger.accounts.get(main.toAccountId)!.name.trim()} for you`
-            : 'Saved';
-    const ok = await save(changes, msg);
+    const plan = planFromTo(ledger, input);
+    const changes: Change[] = [...plan.accounts.map((a) => ({ id: a.id, type: 'account' as const, value: a.value })), ...plan.entries.map((n) => ({ id: n.id, type: 'entry' as const, value: n.value }))];
+    // An exchange between my own accounts can set my dollar rate from now on.
+    const fromAcct = lines[0]?.pick?.type === 'acct' ? ledger.accounts.get(lines[0].pick.id) : undefined;
+    if (cross && useRate && to?.type === 'acct' && fromAcct && input.received) {
+      const sent = input.sources[0]!.amount;
+      const bdtPerUsd = fromAcct.currency === 'USD' ? input.received / sent : sent / input.received;
+      changes.push(...ownRateChange(ledger.settings, ledger.settingsId, Math.round(bdtPerUsd * 100) / 100, date));
+    }
+    const firstOwn = lines.find((x) => x.pick?.type === 'acct')?.pick;
+    if (firstOwn && 'id' in firstOwn) {
+      try {
+        localStorage.setItem(LAST_FROM, firstOwn.id);
+      } catch {
+        /* storage blocked */
+      }
+    }
+    const mains = plan.entries.filter((x) => !x.value.parentId).length;
+    const ok = await save(changes, mains > 1 ? `Saved ${mains} records together` : (said[0] ?? 'Saved').replace(/\.$/, ''));
     setBusy(false);
     if (ok) onDone();
   }
 
-  /** People (loan accounts) as a group of options: anyone can stand in for an account (6.6). */
-  const peopleGroup = (label: string, exclude?: string, extra?: ReactNode) => {
-    const list = loans.filter(([lid]) => lid !== exclude);
-    if (!list.length && !extra) return null;
-    return (
-      <optgroup label={label}>
-        {list.map(([lid, a]) => {
-          const b = bals.get(lid) ?? 0;
-          return (
-            <option key={lid} value={lid}>
-              {accountLabel(a)} ({b === 0 ? 'settled' : b < 0 ? `you owe ${fmtMoney(-b, a.currency)}` : `owes you ${fmtMoney(b, a.currency)}`})
-            </option>
-          );
-        })}
-        {extra}
-      </optgroup>
-    );
-  };
-  const moneyOptions = (exclude?: string) =>
-    money
-      .filter(([aid]) => aid !== exclude)
-      .map(([aid, a]) => (
-        <option key={aid} value={aid}>
-          {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
-        </option>
-      ));
-  const accountSelect = (id: string, label: string, value: string, set: (v: string) => void, exclude?: string, people?: { label: string; exclude?: string }) => (
-    <Field label={label} htmlFor={id}>
-      <select id={id} value={value} onChange={(e) => set(e.target.value)}>
-        {people ? <optgroup label="My accounts">{moneyOptions(exclude)}</optgroup> : moneyOptions(exclude)}
-        {people && peopleGroup(people.label, people.exclude)}
-      </select>
-    </Field>
-  );
-  /** When a person stands in for an account: what happens to where you stand with them. */
-  const viaPerson = acct?.kind === 'loan' ? acct : undefined;
-  const viaBal = viaPerson ? (bals.get(accountId) ?? 0) : 0;
-  const standing = (b: number) => (b === 0 ? 'settled' : b < 0 ? `you owe them ${fmtMoney(-b, viaPerson?.currency)}` : `they owe you ${fmtMoney(b, viaPerson?.currency)}`);
-  const viaHint = (delta: number) => viaPerson && <p className="hint">{viaPerson.name.trim()}: {standing(viaBal)} → <b>{standing(viaBal + delta)}</b>. None of your accounts changes.</p>;
-  const amtNow = parseAmount(amount) ?? 0;
-  const dateField = (
-    <Field label="Date" htmlFor="f-date">
-      <input id="f-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-    </Field>
-  );
-  const noteField = (placeholder: string) => (
-    <Field label="Note (optional)" htmlFor="f-note">
-      <input id="f-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={placeholder} />
-    </Field>
-  );
-  const feeField = (
-    <Field label="Fee (optional)" htmlFor="f-fee" hint="e.g. bKash cash-out or bank charge. Counted as spending.">
-      <input id="f-fee" inputMode="decimal" value={fee} onChange={(e) => setFee(e.target.value)} placeholder="0" />
-    </Field>
-  );
-
-  let fields;
-  switch (kind) {
-    case 'expense':
-    case 'income':
-      fields = (
-        <>
-          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(acct)} autoFocus />
-          <div className="field">
-            <label>Category</label>
-            <div className="cat-pick">
-              {(allCats ? cats : cats.slice(0, 8).concat(cats.slice(8).filter(([cid]) => cid === categoryId))).map(([cid, c]) => (
-                <button key={cid} type="button" aria-pressed={categoryId === cid} onClick={() => setCategoryId(cid)}>
-                  <span className="swatch" style={{ width: 8, height: 8, borderRadius: 2, background: c.slot ? `var(--c${c.slot})` : 'var(--c-other)' }} />
-                  {c.name}
-                </button>
-              ))}
-              {!allCats && cats.length > 8 && (
-                <button type="button" onClick={() => setAllCats(true)}>
-                  More…
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="two">
-            {kind === 'expense' ? (
-              <Field label="Paid from" htmlFor="f-acct">
-                <select id="f-acct" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-                  <optgroup label="My accounts">
-                    {money.map(([aid, a]) => (
-                      <option key={aid} value={aid}>
-                        {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {peopleGroup('Paid by someone else for me', undefined, <option value={NEW_PAYER}>+ Someone new…</option>)}
-                </select>
-              </Field>
-            ) : (
-              accountSelect('f-acct', 'Received into', accountId, setAccountId, undefined, { label: 'Paid to someone else for me' })
-            )}
-            {dateField}
-          </div>
-          {kind === 'expense' && accountId === NEW_PAYER && (
-            <div className="two">
-              <Field label="Who paid" htmlFor="f-newloan">
-                <input id="f-newloan" list="loan-people" autoComplete="off" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
-              </Field>
-              <Field label="Type" htmlFor="f-newtype">
-                <select id="f-newtype" value={newLoanType} onChange={(e) => setNewLoanType(e.target.value as Account['type'])}>
-                  <option value="person">Person</option>
-                  <option value="bank">Bank</option>
-                  <option value="organization">Organization</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
-            </div>
-          )}
-          {kind === 'expense' && accountId === NEW_PAYER && (
-            <Field label="What it's for (optional)" htmlFor="f-purpose" hint="Shown as the loan's name, e.g. two loans with the same person.">
-            <input id="f-purpose" value={newLoanPurpose} onChange={(e) => setNewLoanPurpose(e.target.value)} placeholder="e.g. Fridge" />
-            </Field>
-          )}
-          {kind === 'expense' && accountId === NEW_PAYER && (
-            <p className="hint">
-              It counts as your spending, and you'll owe <b>{newLoanName.trim() || 'them'}</b> this amount. None of your accounts changes until you repay.
-            </p>
-          )}
-          {kind === 'expense' && viaPerson && <><p className="hint" style={{ marginBottom: -8 }}>It counts as your spending.</p>{viaHint(-amtNow)}</>}
-          {kind === 'income' && viaPerson && <><p className="hint" style={{ marginBottom: -8 }}>It counts as your income.</p>{viaHint(amtNow)}</>}
-          {noteField(kind === 'expense' ? 'e.g. Shoes, Bata' : 'e.g. November salary')}
-        </>
-      );
-      break;
-    case 'transfer':
-    case 'exchange':
-      fields = (
-        <>
-          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(acct)} label="Amount sent" autoFocus />
-          <div className="two">
-            {accountSelect('f-acct', 'From', accountId, setAccountId)}
-            {accountSelect('f-to', 'To', toAccountId, setToAccountId, accountId)}
-          </div>
-          {transferCurrencyDiffers && (
-            <>
-              <Field label={`Amount received (${sym(toAcct)})`} htmlFor="f-recv">
-                <input id="f-recv" inputMode="decimal" value={toAmount} onChange={(e) => setToAmount(e.target.value)} />
-              </Field>
-              <label className="check-row">
-                <input type="checkbox" checked={useRate} onChange={(e) => setUseRate(e.target.checked)} />
-                <span>Use this exchange's rate as my dollar rate from now on</span>
-              </label>
-            </>
-          )}
-          <div className="two">
-            {feeField}
-            {dateField}
-          </div>
-          {noteField('Optional')}
-        </>
-      );
-      break;
-    case 'lend':
-    case 'borrow':
-      fields = (
-        <>
-          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(accountId === NO_ACCOUNT ? loan : kind === 'lend' ? acct : (loan ?? acct))} autoFocus />
-          <Field label={kind === 'lend' ? 'Lend to' : 'Borrow from'} htmlFor="f-loan">
-            <select id="f-loan" value={loanId} onChange={(e) => setLoanId(e.target.value)}>
-              {loans.map(([lid, a]) => {
-                const s = loanSummary(ledger, lid);
-                return (
-                  <option key={lid} value={lid}>
-                    {accountLabel(a)}
-                    {s.status === 'settled' ? ' (settled)' : ` (${s.status === 'owe' ? 'you owe' : 'owes you'} ${fmtMoney(Math.abs(s.balance), a.currency)})`}
-                  </option>
-                );
-              })}
-              <option value="new">+ New loan…</option>
-            </select>
-          </Field>
-          {loanId === 'new' && (
-            <div className="two">
-              <Field label="Who" htmlFor="f-newloan">
-                <input id="f-newloan" list="loan-people" autoComplete="off" value={newLoanName} onChange={(e) => setNewLoanName(e.target.value)} placeholder="e.g. Rahim" />
-              </Field>
-              <Field label="Type" htmlFor="f-newtype">
-                <select id="f-newtype" value={newLoanType} onChange={(e) => setNewLoanType(e.target.value as Account['type'])}>
-                  <option value="person">Person</option>
-                  <option value="bank">Bank</option>
-                  <option value="organization">Organization</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
-            </div>
-          )}
-          {loanId === 'new' && (
-            <Field label="What it's for (optional)" htmlFor="f-purpose" hint="Shown as the loan's name, e.g. two loans with the same person.">
-            <input id="f-purpose" value={newLoanPurpose} onChange={(e) => setNewLoanPurpose(e.target.value)} placeholder="e.g. Fridge" />
-            </Field>
-          )}
-          <div className="two">
-            <Field label={kind === 'lend' ? 'From account' : 'Into account'} htmlFor="f-acct">
-              <select id="f-acct" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-                {money.map(([aid, a]) => (
-                  <option key={aid} value={aid}>
-                    {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
-                  </option>
-                ))}
-                <option value={NO_ACCOUNT}>None (owed from before)</option>
-                {peopleGroup(kind === 'lend' ? 'Paid by someone else for me' : 'Paid to someone else for me', loanId)}
-              </select>
-            </Field>
-            {dateField}
-          </div>
-          {accountId === NO_ACCOUNT && (
-            <p className="hint">
-              No money moves now, so <b>Money I have</b> and the Accounts total stay the same. {kind === 'lend' ? 'It adds to what they owe you.' : 'It adds to what you owe them.'}
-            </p>
-          )}
-          {loanCurrencyDiffers && (
-            <Field label={`Amount in ${kind === 'lend' ? loan!.currency : acct!.currency}`} htmlFor="f-recv" hint="The loan and the account use different currencies.">
-              <input id="f-recv" inputMode="decimal" value={toAmount} onChange={(e) => setToAmount(e.target.value)} />
-            </Field>
-          )}
-          {viaPerson && viaHint(kind === 'lend' ? -amtNow : amtNow)}
-          {kind === 'lend' && accountId !== NO_ACCOUNT && !viaPerson && feeField}
-          {noteField('Optional')}
-        </>
-      );
-      void loanEnds;
-      break;
-    case 'repay':
-      fields = openLoans.length ? (
-        <>
-          <Field label="Loan" htmlFor="f-loan">
-            <select
-              id="f-loan"
-              value={loanId}
-              onChange={(e) => {
-                setLoanId(e.target.value);
-                const l = openLoans.find((x) => x.id === e.target.value);
-                if (l) setAmount(amountInputValue(Math.abs(l.s.balance)));
-              }}
-            >
-              {openLoans.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {accountLabel(x.a)} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
-                </option>
-              ))}
-            </select>
-          </Field>
-          {loanForRepay && (
-            <p className="hint">
-              {loanForRepay.s.status === 'owe'
-                ? `You owe ${loanForRepay.a.name} ${fmtMoney(Math.abs(loanForRepay.s.balance), loanForRepay.a.currency)}. Pay part or all of it.`
-                : `${loanForRepay.a.name} owes you ${fmtMoney(loanForRepay.s.balance, loanForRepay.a.currency)}. Record what they paid back.`}
-            </p>
-          )}
-          <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(loanForRepay?.a)} label="Amount paid" />
-          <div className="two">
-            {accountSelect('f-acct', loanForRepay?.s.status === 'owe' ? 'Paid from' : 'Received into', accountId, setAccountId, undefined, {
-              label: loanForRepay?.s.status === 'owe' ? 'Paid by someone else for me' : 'Paid to someone else for me',
-              exclude: loanId,
-            })}
-            {dateField}
-          </div>
-          {viaPerson && loanForRepay && (
-            <p className="hint">
-              {loanForRepay.s.status === 'owe' ? `${viaPerson.name.trim()} pays ${loanForRepay.a.name.trim()} for you.` : `${loanForRepay.a.name.trim()} pays ${viaPerson.name.trim()} for you.`}{' '}
-              {viaPerson.name.trim()}: {standing(viaBal)} → <b>{standing(viaBal + (loanForRepay.s.status === 'owe' ? -amtNow : amtNow))}</b>. None of your accounts changes.
-            </p>
-          )}
-          {!viaPerson && (
-            <div className="two">
-              <Field label="Of which interest (optional)" htmlFor="f-int" hint="For bank EMIs. The rest reduces the loan.">
-                <input id="f-int" inputMode="decimal" value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="0" />
-              </Field>
-              {feeField}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="empty">
-          <p>No open loans. You owe nobody, and nobody owes you.</p>
+  const touched = total || multi || note;
+  return (
+    <form className="col fromto" style={{ gap: 14 }} onSubmit={(e) => void submit(e)}>
+      <div className="quick-row" role="group" aria-label="Quick start">
+        <button
+          type="button"
+          onClick={() => {
+            // Earned: only the source is implied; the destination is left for you to choose.
+            setLines([{ pick: { type: 'income' }, amount: '', fee: '' }]);
+            setTo(null);
+          }}
+        >
+          <Icon name="in" /> Earned
+        </button>
+        <button type="button" onClick={onFix}>
+          <Icon name="scale" /> Fix a balance
+        </button>
+      </div>
+      {!multi && <AmountInput id="f-amt" value={total} onChange={setTotal} symbol={sym} autoFocus={!preset.kind || preset.kind === 'expense'} />}
+      <div className="col" style={{ gap: 8 }}>
+        <div className="side-head">
+          <span className="side-label">From</span>
+          {multi && <span className="small-muted num">Total {fmtMoney(input.sources.reduce((s, x) => s + x.amount, 0), cur)}</span>}
         </div>
-      );
-      break;
-    case 'writeoff':
-      fields = openLoans.length ? (
+        {lines.map((x, i) => (
+          <div key={i} className={`src-line${multi ? '' : ' single'}`}>
+            {pickButton(x.pick, 'from', i)}
+            {multi && (
+              <>
+                <label className="mini amt">
+                  <span>Amount</span>
+                  <input inputMode="decimal" placeholder={`${sym}0`} value={x.amount} onChange={(e) => setLine(i, { amount: e.target.value })} aria-label={`Amount from source ${i + 1}`} />
+                </label>
+                {x.pick?.type === 'acct' && (
+                  <label className="mini fee">
+                    <span>Fee (optional)</span>
+                    <input inputMode="decimal" placeholder="0" value={x.fee} onChange={(e) => setLine(i, { fee: e.target.value })} aria-label={`Fee for source ${i + 1}`} />
+                  </label>
+                )}
+                <button type="button" className="icon-btn line-x" onClick={() => removeLine(i)} aria-label={`Remove source ${i + 1}`}>
+                  <Icon name="x" />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={addLine}>
+          <Icon name="plus" /> Add another source
+        </button>
+        {lines.some((x) => x.auto) && <p className="hint">The person owes you less than the amount, so the rest needs another source: one of your accounts, or a new loan if they paid it all.</p>}
+        {hasNewFrom && (
+          <div className="sub-box">
+            <span className="side-label">New loan (From) · you'll owe them</span>
+            <div className="two">
+              <Field label="Who" htmlFor="nf-who">
+                <input id="nf-who" list="loan-people" autoComplete="off" value={newFrom.name} onChange={(e) => setNewFrom({ ...newFrom, name: e.target.value })} placeholder="e.g. Rafi" />
+              </Field>
+              <Field label="What it's for" htmlFor="nf-why">
+                <input id="nf-why" value={newFrom.purpose} onChange={(e) => setNewFrom({ ...newFrom, purpose: e.target.value })} placeholder={note || 'e.g. Dinner'} />
+              </Field>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flow-down" aria-hidden="true">
+        <Icon name="down" />
+      </div>
+      <div className="col" style={{ gap: 8 }}>
+        <span className="side-label">To</span>
+        {pickButton(to, 'to', 0)}
+        {to?.type === 'new' && (
+          <div className="sub-box">
+            <span className="side-label">New loan (To) · they'll owe you</span>
+            <div className="two">
+              <Field label="Who" htmlFor="nt-who">
+                <input id="nt-who" list="loan-people" autoComplete="off" value={newTo.name} onChange={(e) => setNewTo({ ...newTo, name: e.target.value })} placeholder="e.g. Rafi" />
+              </Field>
+              <Field label="What it's for" htmlFor="nt-why">
+                <input id="nt-why" value={newTo.purpose} onChange={(e) => setNewTo({ ...newTo, purpose: e.target.value })} placeholder={note || 'e.g. Fridge'} />
+              </Field>
+            </div>
+          </div>
+        )}
+      </div>
+      {hasIncome && catChips('What kind of income', 'income', incCat, setIncCat)}
+      {to?.type === 'expense' && catChips('Spent on', 'expense', expCat, setExpCat)}
+      {cross && (
         <>
-          <Field label="Loan" htmlFor="f-loan">
-            <select id="f-loan" value={loanId} onChange={(e) => setLoanId(e.target.value)}>
-              {openLoans.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {accountLabel(x.a)} ({x.s.status === 'owe' ? 'you owe' : 'owes you'} {fmtMoney(Math.abs(x.s.balance), x.a.currency)})
-                </option>
-              ))}
-            </select>
+          <Field label={`Amount received (${pickCurrency(ledger, to) === 'USD' ? '$' : '৳'})`} htmlFor="f-recv">
+            <input id="f-recv" inputMode="decimal" value={received} onChange={(e) => setReceived(e.target.value)} placeholder="0" />
           </Field>
-          <p className="hint">
-            {loanForRepay?.s.status === 'owed'
-              ? `Clears the ${fmtMoney(loanForRepay.s.balance, loanForRepay.a.currency)} ${loanForRepay.a.name} still owes you, and records it as spending.`
-              : loanForRepay
-                ? `Use this if ${loanForRepay.a.name} forgave what you owe. It's recorded as a gift (income).`
-                : ''}
-          </p>
-          {loanForRepay?.s.status === 'owed' && (
+          {to?.type === 'acct' && lines[0]?.pick?.type === 'acct' && (
             <label className="check-row">
-              <input type="checkbox" checked={asGift} onChange={(e) => setAsGift(e.target.checked)} />
-              <span>Record it as a gift instead of a written-off loan</span>
+              <input type="checkbox" checked={useRate} onChange={(e) => setUseRate(e.target.checked)} />
+              <span>Use this exchange's rate as my dollar rate from now on</span>
             </label>
           )}
-          {dateField}
         </>
-      ) : (
-        <div className="empty">
-          <p>No open loans to write off.</p>
-        </div>
-      );
-      break;
-    case 'correction':
-      fields = (
-        <>
-          {accountSelect('f-acct', 'Account', accountId, (v) => {
-            setAccountId(v);
-            setReal(amountInputValue(bals.get(v) ?? 0));
-          })}
-          <p className="hint">
-            The app says <b>{acct?.name}</b> has <b className="num">{fmtMoney(bals.get(accountId) ?? 0, acct?.currency)}</b>. Type what it really has. The difference is recorded as a correction and is not counted as spending.
-          </p>
-          <AmountInput id="f-real" value={real} onChange={setReal} symbol={sym(acct)} label="Real balance" autoFocus />
-          {parseAmount(real, true) !== null && (
-            <p className="hint">Correction: {fmtMoney((parseAmount(real, true) ?? 0) - (bals.get(accountId) ?? 0), acct?.currency, { sign: true })}</p>
-          )}
-          {dateField}
-        </>
-      );
-      break;
-  }
-
-  return (
-    <form className="col" style={{ gap: 14 }} onSubmit={(e) => void submit(e)}>
-      {fields}
+      )}
+      {showInterest && (
+        <Field label="Of which interest (optional)" htmlFor="f-int" hint="For bank EMIs. The rest pays down the loan.">
+          <input id="f-int" inputMode="decimal" value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="0" />
+        </Field>
+      )}
+      <div className="two">
+        <Field label="Date" htmlFor="f-date">
+          <input id="f-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        {!multi && lines[0]?.pick?.type === 'acct' ? (
+          <Field label="Fee (optional)" htmlFor="f-fee">
+            <input id="f-fee" inputMode="decimal" value={lines[0].fee} onChange={(e) => setLine(0, { fee: e.target.value })} placeholder="0" />
+          </Field>
+        ) : (
+          <span />
+        )}
+      </div>
+      <Field label="Note (optional)" htmlFor="f-note">
+        <input id="f-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Dinner with family" />
+      </Field>
+      <div className="say" aria-live="polite">
+        {said.length === 0 ? (
+          <p className="small-muted" style={{ margin: 0 }}>Choose From and To, and a sentence here will say what you are recording.</p>
+        ) : said.length === 1 ? (
+          <p className="say-lead">{said[0]}</p>
+        ) : (
+          <>
+            <p className="say-lead">This records {said.length} things:</p>
+            <ul>
+              {said.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+      {warns.map((w, i) => (
+        <p key={i} className="banner warn-line" role="status">
+          <Icon name="alert" /> {w}
+        </p>
+      ))}
+      {errs.length > 0 && touched && <p className="error-text">{errs[0]}</p>}
+      <button className="btn block" type="submit" disabled={busy || errs.length > 0}>
+        {warns.length ? 'Save anyway' : 'Save'}
+      </button>
       <datalist id="loan-people">
         {people.map((n) => (
           <option key={n} value={n} />
         ))}
       </datalist>
+    </form>
+  );
+}
+
+/** Fix a balance: tell the app what an account really holds; the difference is a correction, not spending. */
+function CorrectionForm({ accountId: preset, onDone }: { accountId?: string; onDone: () => void }) {
+  const { ledger, today, save } = useApp();
+  const bals = useBalances();
+  const money = [...ledger.accounts].filter(([, a]) => a.kind === 'money' && !a.archived).sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
+  const [accountId, setAccountId] = useState(preset ?? money[0]?.[0] ?? '');
+  const acct = ledger.accounts.get(accountId);
+  const [real, setReal] = useState(() => amountInputValue(bals.get(accountId) ?? 0));
+  const [date, setDate] = useState(today);
+  const [error, setError] = useState<string | null>(null);
+  const current = bals.get(accountId) ?? 0;
+  const r = parseAmount(real, true);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (r === null) return setError('Enter the real balance.');
+    try {
+      const entries = correction({ date, accountId, current, real: r });
+      if (await save(entries.map((n) => ({ id: n.id, type: 'entry' as const, value: n.value })), `${acct?.name} corrected by ${fmtMoney(r - current, acct?.currency, { sign: true })}`)) onDone();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  return (
+    <form className="col" style={{ gap: 14 }} onSubmit={(e) => void submit(e)}>
+      <Field label="Account" htmlFor="c-acct">
+        <select
+          id="c-acct"
+          value={accountId}
+          onChange={(e) => {
+            setAccountId(e.target.value);
+            setReal(amountInputValue(bals.get(e.target.value) ?? 0));
+          }}
+        >
+          {money.map(([id, a]) => (
+            <option key={id} value={id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <p className="hint">
+        The app says <b>{acct?.name}</b> has <b className="num">{fmtMoney(current, acct?.currency)}</b>. Type what it really has. The difference is recorded as a correction and is not counted as spending.
+      </p>
+      <AmountInput id="c-real" value={real} onChange={setReal} symbol={acct?.currency === 'USD' ? '$' : '৳'} label="Real balance" autoFocus />
+      {r !== null && r !== current && <p className="hint">Correction: {fmtMoney(r - current, acct?.currency, { sign: true })}</p>}
+      <Field label="Date" htmlFor="c-date">
+        <input id="c-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </Field>
       {error && <p className="error-text" role="alert">{error}</p>}
-      {warnings && (
-        <div className="banner" role="alert">
-          <span>{warnings.join(' ')} Save anyway?</span>
-          <button type="button" className="btn small" onClick={(e) => void submit(e as unknown as FormEvent, true)}>Save anyway</button>
-        </div>
-      )}
-      {!(kind === 'repay' || kind === 'writeoff') || openLoans.length ? (
-        <button className="btn block" type="submit" disabled={busy}>
-          {kind === 'writeoff' ? 'Write off' : 'Save'}
-        </button>
-      ) : null}
+      <button className="btn block" type="submit">
+        Save correction
+      </button>
     </form>
   );
 }

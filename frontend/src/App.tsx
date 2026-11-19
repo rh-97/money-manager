@@ -6,7 +6,7 @@ import { ConflictError, Vault, type Change } from './lib/vault.ts';
 import { ApiError } from './lib/api.ts';
 import { applyContrast } from './lib/contrast.ts';
 import { forgetDevice, keepDeviceUnlockedWhileUsed, openRememberedDevice, rememberDevice } from './lib/remember.ts';
-import { DEFAULT_CATEGORIES, defaultSettings } from './money/defaults.ts';
+import { DEFAULT_CATEGORIES, defaultSettings, EXTRA_CATEGORIES } from './money/defaults.ts';
 import type { Entry } from './money/types.ts';
 import { ForcePasswordScreen, LoginScreen, RecoverScreen, SetupAuthScreen, UnlockScreen, errorText, type Unlocked } from './screens/Auth.tsx';
 import { AppCtx, describeEntry, useApp, type AddPreset, type AppCtxValue } from './ui/ctx.tsx';
@@ -124,6 +124,19 @@ function Loader({ unlocked, onLogout, onLock }: { unlocked: Unlocked; onLogout: 
           } catch (err) {
             if (!(err instanceof ConflictError)) throw err;
             await vault.pull();
+          }
+        }
+        // Categories added after launch: give each user any they don't have yet (fixed ids, so two devices can't duplicate them).
+        {
+          const l = vault.getLedger();
+          const have = new Set([...l.categories.values()].map((c) => `${c.kind}:${c.name.trim().toLowerCase()}`));
+          const missing = EXTRA_CATEGORIES.filter((c) => !have.has(`${c.kind}:${c.name.toLowerCase()}`));
+          if (missing.length) {
+            const start = l.categories.size;
+            const changes: Change[] = missing.map((c, i) => ({ id: derivedId(unlocked.dataKey, `category:extra:${c.name}`), type: 'category', value: { ...c, sortOrder: start + i } }));
+            await vault.save(changes).catch(async (err) => {
+              if (err instanceof ConflictError) await vault.pull();
+            });
           }
         }
         // Recently deleted: erase entries deleted more than 30 days ago.

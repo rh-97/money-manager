@@ -52,7 +52,7 @@ describe('balances', () => {
 
   it('applies expenses, income and transfers with a fee', () => {
     const l = ledger({ bkash: account({ name: 'bKash', type: 'wallet', startingBalance: tk(15000) }), cash: account({ name: 'Cash', type: 'cash' }) });
-    l.add(expenseOrIncome({ kind: 'expense', date: '2026-11-02', amount: tk(1250), accountId: 'bkash', categoryId: l.cat('Food & Groceries') }));
+    l.add(expenseOrIncome({ kind: 'expense', date: '2026-11-02', amount: tk(1250), accountId: 'bkash', categoryId: l.cat('Food') }));
     l.add(expenseOrIncome({ kind: 'income', date: '2026-11-03', amount: tk(3000), accountId: 'bkash', categoryId: l.cat('Freelance') }));
     l.add(transfer(l.categories, { date: '2026-11-04', amount: tk(10000), from: 'bkash', to: 'cash', fee: tk(185) }));
     const b = balances(l);
@@ -351,7 +351,7 @@ describe('combining two entries (6.7)', () => {
 describe('stats', () => {
   it('builds monthly series, daily spending and insights', () => {
     const l = ledger({ a: account({ name: 'A', startingBalance: tk(100000), startDate: '2026-09-01' }) });
-    const food = l.cat('Food & Groceries');
+    const food = l.cat('Food');
     l.add(expenseOrIncome({ kind: 'expense', date: '2026-10-05', amount: tk(5000), accountId: 'a', categoryId: food }));
     l.add(expenseOrIncome({ kind: 'expense', date: '2026-11-03', amount: tk(6500), accountId: 'a', categoryId: food }));
     l.add(expenseOrIncome({ kind: 'income', date: '2026-11-01', amount: tk(82000), accountId: 'a', categoryId: l.cat('Salary') }));
@@ -362,7 +362,7 @@ describe('stats', () => {
     expect(daily).toHaveLength(30);
     expect(daily[2]).toBe(tk(6500));
     const ins = insights(l, '2026-11-15', (n) => String(n / 100));
-    expect(ins.some((i) => i.before === 'Food & Groceries is up ' && i.strong === '30%')).toBe(true);
+    expect(ins.some((i) => i.before === 'Food is up ' && i.strong === '30%')).toBe(true);
     expect(ins.some((i) => i.after.includes('more than all of October'))).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { dayLabel, fmtMoney, parseAmount } from '../lib/format.ts';
-import { combinePlan, counts, liveEntries, toBDT } from '../money/calc.ts';
+import { collapseGroups, combinePlan, counts, liveEntries, toBDT } from '../money/calc.ts';
 import { combine } from '../money/actions.ts';
 import type { Entry } from '../money/types.ts';
 import { describeEntry, EntryRow, useApp } from '../ui/ctx.tsx';
@@ -119,8 +119,8 @@ export function HistoryScreen() {
                 <span className="num">{daySpent ? `Spent ${fmtMoney(daySpent)}` : ''}</span>
               </div>
               <div className="rows">
-                {items.map(([id, e]) => (
-                  <EntryRow key={id} id={id} e={e} picked={picked.includes(id)} onPick={combining ? () => pick(id) : undefined} />
+                {(combining ? items : collapseGroups(items)).map(([id, e]) => (
+                  <EntryRow key={id} id={id} e={e} asGroup={!combining} picked={picked.includes(id)} onPick={combining ? () => pick(id) : undefined} />
                 ))}
               </div>
             </div>

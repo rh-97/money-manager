@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { Session } from '../lib/auth.ts';
 import type { Change, Vault } from '../lib/vault.ts';
-import { accountLabel, balances, loanTitle, type Ledger } from '../money/calc.ts';
+import { accountLabel, balances, DIRECT, groupParts, loanTitle, type Ledger } from '../money/calc.ts';
 import { fmtMoney } from '../lib/format.ts';
 import type { Entry } from '../money/types.ts';
 import { ACCOUNT_ICONS, Chip, Icon } from './icons.tsx';
@@ -65,10 +65,19 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
     case 'expense':
     case 'income': {
       const onLoan = acct?.kind === 'loan' && e.loanAction !== 'writeoff';
+      if (e.accountId === DIRECT) {
+        // Earned and spent in one go: no account was involved.
+        return {
+          icon: <Chip icon={e.kind === 'income' ? 'in' : (cat?.icon ?? 'dots')} slot={cat?.slot ?? 0} />,
+          title: e.note || cat?.name || (e.kind === 'income' ? 'Income' : 'Expense'),
+          sub: `${cat?.name ?? 'No category'} · ${e.kind === 'income' ? 'paid straight to an expense' : 'paid straight from income'}`,
+          amount: <span className={e.kind === 'income' ? 'pos' : 'neg'}>{fmtMoney(e.kind === 'income' ? e.amount : -e.amount, 'BDT', { sign: true })}</span>,
+        };
+      }
       return {
         icon: <Chip icon={e.kind === 'income' ? 'in' : (cat?.icon ?? 'dots')} slot={cat?.slot ?? 0} />,
         title: e.note || cat?.name || (e.kind === 'income' ? 'Income' : 'Expense'),
-        sub: `${cat?.name ?? 'No category'} · ${onLoan && acct ? (e.kind === 'expense' ? `paid by ${accountLabel(acct)} for you` : `paid to ${accountLabel(acct)} for you`) : acct?.kind === 'loan' ? `Loan: ${accountLabel(acct)}` : (acct?.name ?? '')}`,
+        sub: `${cat?.name ?? 'No category'} · ${onLoan && acct ? `${e.kind === 'expense' ? 'paid by' : 'paid to'} ${acct.name.trim()} for you${acct.purpose?.trim() ? ` (${acct.purpose.trim()})` : ''}` : acct?.kind === 'loan' ? `Loan: ${accountLabel(acct)}` : (acct?.name ?? '')}`,
         amount: <span className={e.kind === 'income' ? 'pos' : 'neg'}>{fmtMoney(e.kind === 'income' ? e.amount : -e.amount, cur, { sign: true })}</span>,
       };
     }
@@ -147,10 +156,64 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
   }
 }
 
+/**
+ * Records saved together, described as one: "Dinner · paid by Rafi ৳7,000 + Cash ৳3,000".
+ * Falls back to the single entry when the group has only one part left.
+ */
+export function describeGroup(l: Ledger, groupId: string): ReturnType<typeof describeEntry> | null {
+  const parts = groupParts(l, groupId).map(([, e]) => e);
+  if (parts.length < 2) return null;
+  const first = parts[0]!;
+  const cur = l.accounts.get(first.accountId)?.currency ?? 'BDT';
+  const cat = (e: Entry) => (e.categoryId ? l.categories.get(e.categoryId) : undefined);
+  const who = (id: string) => {
+    const a = l.accounts.get(id);
+    return a ? (a.kind === 'loan' ? a.name.trim() : a.name) : 'Deleted account';
+  };
+  const income = parts.find((e) => e.kind === 'income' && e.accountId === DIRECT);
+  const spent = parts.find((e) => e.kind === 'expense' && e.accountId === DIRECT);
+  if (income && spent) {
+    return {
+      icon: <Chip icon="in" slot={cat(income)?.slot ?? 0} />,
+      title: first.note || `${cat(income)?.name ?? 'Income'} → ${cat(spent)?.name ?? 'Expense'}`,
+      sub: `Earned (${cat(income)?.name ?? 'income'}), paid straight to ${cat(spent)?.name ?? 'an expense'}`,
+      amount: (
+        <>
+          {fmtMoney(income.amount, 'BDT')}
+          <small>earned and spent</small>
+        </>
+      ),
+    };
+  }
+  const total = parts.reduce((s, e) => s + e.amount, 0);
+  const sources = parts.map((e) => `${who(e.accountId)} ${fmtMoney(e.amount, cur)}`).join(' + ');
+  if (first.kind === 'expense') {
+    return {
+      icon: <Chip icon={cat(first)?.icon ?? 'dots'} slot={cat(first)?.slot ?? 0} />,
+      title: first.note || cat(first)?.name || 'Expense',
+      sub: `${cat(first)?.name ?? 'No category'} · paid by ${sources}`,
+      amount: <span className="neg">{fmtMoney(-total, cur, { sign: true })}</span>,
+    };
+  }
+  const to = first.toAccountId ? l.accounts.get(first.toAccountId) : undefined;
+  return {
+    icon: <Chip icon="transfer" />,
+    title: first.note || `To ${to ? accountLabel(to) : 'Deleted account'}`,
+    sub: `from ${sources}`,
+    amount: (
+      <>
+        {fmtMoney(total, cur)}
+        <small>{parts.length} sources</small>
+      </>
+    ),
+  };
+}
+
 /** One entry in a list. With `onPick`, tapping selects it instead of opening it (History's Combine). */
-export function EntryRow({ id, e, picked, onPick }: { id: string; e: Entry; picked?: boolean; onPick?: () => void }) {
+export function EntryRow({ id, e, picked, onPick, asGroup }: { id: string; e: Entry; picked?: boolean; onPick?: () => void; asGroup?: boolean }) {
   const { ledger, openEntry } = useApp();
-  const v = describeEntry(ledger, e);
+  // In History and Recent, a split payment shows once, as a whole; in one account's history, only its own part.
+  const v = (asGroup && e.groupId && describeGroup(ledger, e.groupId)) || describeEntry(ledger, e);
   return (
     <button className={`row row-btn${picked ? ' picked' : ''}`} aria-pressed={onPick ? Boolean(picked) : undefined} onClick={() => (onPick ? onPick() : openEntry(id))}>
       {onPick && <span className="pick-box" aria-hidden="true">{picked && <Icon name="check" />}</span>}
