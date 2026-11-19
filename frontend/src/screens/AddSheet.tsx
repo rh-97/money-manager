@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { randomId } from '@mm/shared';
 import { amountInputValue, fmtMoney, parseAmount } from '../lib/format.ts';
 import { accountLabel, effects, loanSummary, personKey } from '../money/calc.ts';
@@ -143,7 +143,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
 
   function build(): { entries: NewEntry[]; extra: Change[] } | string {
     const amt = parseAmount(amount);
-    const feeAmt = fee.trim() ? parseAmount(fee) : 0;
+    const feeAmt = fee.trim() && acct?.kind !== 'loan' ? parseAmount(fee) : 0;
     if (feeAmt === null) return 'The fee should be a number.';
     const extra: Change[] = [];
     switch (kind) {
@@ -212,7 +212,8 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
         if (!loanForRepay) return 'Choose a loan.';
         if (!amt) return 'Enter the amount paid.';
         if (loanForRepay.a.currency !== acct!.currency) return `This loan is in ${loanForRepay.a.currency === 'USD' ? 'dollars' : 'taka'}. Choose a ${loanForRepay.a.currency} account.`;
-        const int = interest.trim() ? parseAmount(interest) : 0;
+        if (accountId === loanId) return 'Choose a different account or person.';
+        const int = interest.trim() && acct?.kind !== 'loan' ? parseAmount(interest) : 0;
         if (int === null) return 'The interest should be a number.';
         try {
           return { entries: repay(ledger.categories, { date, loanId, moneyId: accountId, loanBalance: loanForRepay.s.balance, amount: amt, interest: int, fee: feeAmt ?? 0, note: note.trim() }), extra };
@@ -243,6 +244,13 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
     for (const { value } of entries) for (const { accountId: id, delta } of effects(value)) after.set(id, (after.get(id) ?? 0) + delta);
     for (const [id, v] of after) {
       const a = ledger.accounts.get(id);
+      if (a?.kind === 'loan' && id === accountId && id !== loanId) {
+        // A person standing in for an account: warn when you'd end up on the other side with them.
+        const was = bals.get(id) ?? 0;
+        if (was > 0 && v < 0) out.push(`${a.name.trim()} owes you only ${fmtMoney(was, a.currency)}. After this you'd owe them ${fmtMoney(-v, a.currency)}.`);
+        if (was < 0 && v > 0) out.push(`You owe ${a.name.trim()} only ${fmtMoney(-was, a.currency)}. After this they'd owe you ${fmtMoney(v, a.currency)}.`);
+        continue;
+      }
       if (!a || a.kind !== 'money' || a.type === 'card' || kind === 'correction') continue;
       if (v < 0 && (bals.get(id) ?? 0) >= 0) out.push(`${a.name} would go below zero (${fmtMoney(v, a.currency)}).`);
     }
@@ -267,25 +275,54 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
         ? `Saved ${fmtMoney(main.kind === 'income' ? main.amount : -main.amount, acct?.currency, { sign: true })} · ${ledger.categories.get(categoryId)?.name ?? ''}`
         : kind === 'correction'
           ? `${acct?.name} corrected by ${fmtMoney(main.amount, acct?.currency, { sign: true })}`
-          : 'Saved';
+          : viaPerson && main.toAccountId && ledger.accounts.get(main.toAccountId)?.kind === 'loan' && ledger.accounts.get(main.accountId)?.kind === 'loan'
+            ? `Saved: ${ledger.accounts.get(main.accountId)!.name.trim()} paid ${ledger.accounts.get(main.toAccountId)!.name.trim()} for you`
+            : 'Saved';
     const ok = await save(changes, msg);
     setBusy(false);
     if (ok) onDone();
   }
 
-  const accountSelect = (id: string, label: string, value: string, set: (v: string) => void, exclude?: string) => (
+  /** People (loan accounts) as a group of options: anyone can stand in for an account (6.6). */
+  const peopleGroup = (label: string, exclude?: string, extra?: ReactNode) => {
+    const list = loans.filter(([lid]) => lid !== exclude);
+    if (!list.length && !extra) return null;
+    return (
+      <optgroup label={label}>
+        {list.map(([lid, a]) => {
+          const b = bals.get(lid) ?? 0;
+          return (
+            <option key={lid} value={lid}>
+              {accountLabel(a)} ({b === 0 ? 'settled' : b < 0 ? `you owe ${fmtMoney(-b, a.currency)}` : `owes you ${fmtMoney(b, a.currency)}`})
+            </option>
+          );
+        })}
+        {extra}
+      </optgroup>
+    );
+  };
+  const moneyOptions = (exclude?: string) =>
+    money
+      .filter(([aid]) => aid !== exclude)
+      .map(([aid, a]) => (
+        <option key={aid} value={aid}>
+          {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
+        </option>
+      ));
+  const accountSelect = (id: string, label: string, value: string, set: (v: string) => void, exclude?: string, people?: { label: string; exclude?: string }) => (
     <Field label={label} htmlFor={id}>
       <select id={id} value={value} onChange={(e) => set(e.target.value)}>
-        {money
-          .filter(([aid]) => aid !== exclude)
-          .map(([aid, a]) => (
-            <option key={aid} value={aid}>
-              {a.hideBalance ? a.name : `${a.name} (${fmtMoney(bals.get(aid) ?? 0, a.currency)})`}
-            </option>
-          ))}
+        {people ? <optgroup label="My accounts">{moneyOptions(exclude)}</optgroup> : moneyOptions(exclude)}
+        {people && peopleGroup(people.label, people.exclude)}
       </select>
     </Field>
   );
+  /** When a person stands in for an account: what happens to where you stand with them. */
+  const viaPerson = acct?.kind === 'loan' ? acct : undefined;
+  const viaBal = viaPerson ? (bals.get(accountId) ?? 0) : 0;
+  const standing = (b: number) => (b === 0 ? 'settled' : b < 0 ? `you owe them ${fmtMoney(-b, viaPerson?.currency)}` : `they owe you ${fmtMoney(b, viaPerson?.currency)}`);
+  const viaHint = (delta: number) => viaPerson && <p className="hint">{viaPerson.name.trim()}: {standing(viaBal)} → <b>{standing(viaBal + delta)}</b>. None of your accounts changes.</p>;
+  const amtNow = parseAmount(amount) ?? 0;
   const dateField = (
     <Field label="Date" htmlFor="f-date">
       <input id="f-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -336,18 +373,11 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Paid by someone else (I'll owe them)">
-                    {loans.map(([lid, a]) => (
-                      <option key={lid} value={lid}>
-                        {accountLabel(a)}
-                      </option>
-                    ))}
-                    <option value={NEW_PAYER}>+ Someone new…</option>
-                  </optgroup>
+                  {peopleGroup('Paid by someone else for me', undefined, <option value={NEW_PAYER}>+ Someone new…</option>)}
                 </select>
               </Field>
             ) : (
-              accountSelect('f-acct', 'Received into', accountId, setAccountId)
+              accountSelect('f-acct', 'Received into', accountId, setAccountId, undefined, { label: 'Paid to someone else for me' })
             )}
             {dateField}
           </div>
@@ -371,11 +401,13 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
             <input id="f-purpose" value={newLoanPurpose} onChange={(e) => setNewLoanPurpose(e.target.value)} placeholder="e.g. Fridge" />
             </Field>
           )}
-          {kind === 'expense' && (accountId === NEW_PAYER || acct?.kind === 'loan') && (
+          {kind === 'expense' && accountId === NEW_PAYER && (
             <p className="hint">
-              It counts as your spending, and you'll owe <b>{accountId === NEW_PAYER ? newLoanName.trim() || 'them' : acct ? accountLabel(acct) : ''}</b> this amount. None of your accounts changes until you repay.
+              It counts as your spending, and you'll owe <b>{newLoanName.trim() || 'them'}</b> this amount. None of your accounts changes until you repay.
             </p>
           )}
+          {kind === 'expense' && viaPerson && <><p className="hint" style={{ marginBottom: -8 }}>It counts as your spending.</p>{viaHint(-amtNow)}</>}
+          {kind === 'income' && viaPerson && <><p className="hint" style={{ marginBottom: -8 }}>It counts as your income.</p>{viaHint(amtNow)}</>}
           {noteField(kind === 'expense' ? 'e.g. Shoes, Bata' : 'e.g. November salary')}
         </>
       );
@@ -456,6 +488,7 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
                   </option>
                 ))}
                 <option value={NO_ACCOUNT}>None (owed from before)</option>
+                {peopleGroup(kind === 'lend' ? 'Paid by someone else for me' : 'Paid to someone else for me', loanId)}
               </select>
             </Field>
             {dateField}
@@ -470,7 +503,8 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
               <input id="f-recv" inputMode="decimal" value={toAmount} onChange={(e) => setToAmount(e.target.value)} />
             </Field>
           )}
-          {kind === 'lend' && accountId !== NO_ACCOUNT && feeField}
+          {viaPerson && viaHint(kind === 'lend' ? -amtNow : amtNow)}
+          {kind === 'lend' && accountId !== NO_ACCOUNT && !viaPerson && feeField}
           {noteField('Optional')}
         </>
       );
@@ -505,15 +539,26 @@ function EntryForm({ kind, preset, onDone }: { kind: AddKind; preset: AddPreset;
           )}
           <AmountInput id="f-amt" value={amount} onChange={setAmount} symbol={sym(loanForRepay?.a)} label="Amount paid" />
           <div className="two">
-            {accountSelect('f-acct', loanForRepay?.s.status === 'owe' ? 'Paid from' : 'Received into', accountId, setAccountId)}
+            {accountSelect('f-acct', loanForRepay?.s.status === 'owe' ? 'Paid from' : 'Received into', accountId, setAccountId, undefined, {
+              label: loanForRepay?.s.status === 'owe' ? 'Paid by someone else for me' : 'Paid to someone else for me',
+              exclude: loanId,
+            })}
             {dateField}
           </div>
-          <div className="two">
-            <Field label="Of which interest (optional)" htmlFor="f-int" hint="For bank EMIs. The rest reduces the loan.">
-              <input id="f-int" inputMode="decimal" value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="0" />
-            </Field>
-            {feeField}
-          </div>
+          {viaPerson && loanForRepay && (
+            <p className="hint">
+              {loanForRepay.s.status === 'owe' ? `${viaPerson.name.trim()} pays ${loanForRepay.a.name.trim()} for you.` : `${loanForRepay.a.name.trim()} pays ${viaPerson.name.trim()} for you.`}{' '}
+              {viaPerson.name.trim()}: {standing(viaBal)} → <b>{standing(viaBal + (loanForRepay.s.status === 'owe' ? -amtNow : amtNow))}</b>. None of your accounts changes.
+            </p>
+          )}
+          {!viaPerson && (
+            <div className="two">
+              <Field label="Of which interest (optional)" htmlFor="f-int" hint="For bank EMIs. The rest reduces the loan.">
+                <input id="f-int" inputMode="decimal" value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="0" />
+              </Field>
+              {feeField}
+            </div>
+          )}
         </>
       ) : (
         <div className="empty">

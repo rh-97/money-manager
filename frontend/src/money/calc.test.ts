@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cryptoReady } from '@mm/shared';
-import { accountLabel, balances, shownOnHome, dailySpending, groupByPerson, insights, loanSummary, loanTitle, monthlySeries, offsetPlan, periodStats, rateOn, totals, type Ledger } from './calc.ts';
-import { cancelOut, correction, expenseOrIncome, repay, transfer, writeOff } from './actions.ts';
+import { accountLabel, balances, combinePlan, shownOnHome, dailySpending, groupByPerson, insights, loanSummary, loanTitle, monthlySeries, offsetPlan, periodStats, rateOn, totals, type Ledger } from './calc.ts';
+import { cancelOut, combine, uncombine, correction, expenseOrIncome, repay, transfer, writeOff } from './actions.ts';
 import { DEFAULT_CATEGORIES, defaultSettings } from './defaults.ts';
 import type { Account, Category, Entry } from './types.ts';
 
@@ -271,6 +271,80 @@ describe('Home account cards (4.1)', () => {
     expect(shownOnHome(account({ name: 'FDR', includeInTotal: false }))).toBe(false);
     expect(shownOnHome(account({ name: 'FDR', includeInTotal: false, showOnHome: true }))).toBe(true);
     expect(shownOnHome(account({ name: 'Nagad', includeInTotal: true, showOnHome: false }))).toBe(false);
+  });
+});
+
+describe('people as accounts (6.6)', () => {
+  const loan = (name: string, startingBalance: number, extra: Partial<Account> = {}) => account({ name, kind: 'loan', type: 'person', startingBalance, ...extra });
+
+  it('a friend who owes me pays someone I owe: both loans move, my accounts and net worth do not', () => {
+    const l = ledger({
+      bkash: account({ name: 'bKash', startingBalance: tk(3000) }),
+      nabila: loan('Nabila', tk(4000), { purpose: 'Tuition' }),
+      sajid: loan('Sajid', tk(-6000), { purpose: 'Laptop' }),
+    });
+    const before = totals(l, '2026-11-20');
+    l.add(repay(l.categories, { date: '2026-11-20', loanId: 'sajid', moneyId: 'nabila', loanBalance: tk(-6000), amount: tk(1500) }));
+    expect(loanSummary(l, 'nabila').balance).toBe(tk(2500));
+    expect(loanSummary(l, 'sajid').balance).toBe(tk(-4500));
+    expect(balances(l).get('bkash')).toBe(tk(3000));
+    expect(totals(l, '2026-11-20').netWorth).toBe(before.netWorth);
+    expect(periodStats(l, '2026-11-01', '2026-11-30')).toMatchObject({ spent: 0, income: 0 });
+  });
+
+  it('a client pays my uncle: it counts as income and lowers what I owe him', () => {
+    const l = ledger({ city: account({ name: 'City Bank' }), uncle: loan('Uncle', tk(-20000), { purpose: 'Bike' }) });
+    l.add(expenseOrIncome({ kind: 'income', date: '2026-11-20', amount: tk(15000), accountId: 'uncle', categoryId: l.cat('Freelance') }));
+    expect(loanSummary(l, 'uncle').balance).toBe(tk(-5000));
+    expect(balances(l).get('city')).toBe(0);
+    expect(periodStats(l, '2026-11-01', '2026-11-30').income).toBe(tk(15000));
+  });
+});
+
+describe('combining two entries (6.7)', () => {
+  const loan = (name: string, startingBalance: number) => account({ name, kind: 'loan', type: 'person', startingBalance });
+  const snapshot = (l: Ledger) => ({ bals: [...balances(l)].sort(), t: totals(l, '2026-11-30'), s: periodStats(l, '2026-11-01', '2026-11-30') });
+
+  it('a repayment into Cash and a bill paid from Cash become "paid by Tanvir" plus the leftover, with no total changing', () => {
+    const l = ledger({ cash: account({ name: 'Cash', startingBalance: tk(1000) }), tanvir: loan('Tanvir', tk(3000)) });
+    l.add([{ id: 'in', value: transfer(l.categories, { date: '2026-11-10', amount: tk(3000), from: 'tanvir', to: 'cash', loanAction: 'repay' })[0]!.value }]);
+    l.add([{ id: 'out', value: expenseOrIncome({ kind: 'expense', date: '2026-11-10', amount: tk(3500), accountId: 'cash', categoryId: l.cat('Bills & Utilities'), note: 'Electricity' })[0]!.value }]);
+    const before = snapshot(l);
+    const plan = combinePlan(l, 'out', 'in');
+    expect(plan).toMatchObject({ ok: true, middle: 'cash', amount: tk(3000), inflowId: 'in', outflowId: 'out' });
+    if (!plan.ok) return;
+    expect(plan.combined).toMatchObject({ kind: 'expense', accountId: 'tanvir', amount: tk(3000), note: 'Electricity' });
+    expect(plan.leftover).toMatchObject({ kind: 'expense', accountId: 'cash', amount: tk(500) });
+    for (const c of combine(l, plan)) l.entries.set(c.id, c.value);
+    expect(snapshot(l)).toEqual(before);
+    expect(loanSummary(l, 'tanvir').status).toBe('settled');
+    // Undo brings the two originals back
+    const combinedId = [...l.entries].find(([, e]) => e.combinedFrom && e.accountId === 'tanvir')![0];
+    for (const c of uncombine(l, combinedId)!) ('delete' in c ? l.entries.delete(c.id) : l.entries.set(c.id, c.value));
+    expect(l.entries.get('in')!.deletedAt).toBeUndefined();
+    expect([...l.entries.values()].filter((e) => !e.deletedAt)).toHaveLength(2);
+    expect(snapshot(l)).toEqual(before);
+  });
+
+  it('two transfers through bKash become one person-to-person payment', () => {
+    const l = ledger({ bkash: account({ name: 'bKash' }), nabila: loan('Nabila', tk(4000)), sajid: loan('Sajid', tk(-6000)) });
+    l.add([{ id: 'a', value: transfer(l.categories, { date: '2026-11-20', amount: tk(4000), from: 'nabila', to: 'bkash', loanAction: 'repay' })[0]!.value }]);
+    l.add([{ id: 'b', value: transfer(l.categories, { date: '2026-11-20', amount: tk(4000), from: 'bkash', to: 'sajid', loanAction: 'repay' })[0]!.value }]);
+    const plan = combinePlan(l, 'a', 'b');
+    expect(plan).toMatchObject({ ok: true, leftover: null, combined: { kind: 'transfer', accountId: 'nabila', toAccountId: 'sajid', amount: tk(4000) } });
+  });
+
+  it('refuses what would change a balance or a total', () => {
+    const l = ledger({ cash: account({ name: 'Cash' }), city: account({ name: 'City Bank' }), rafi: loan('Rafi', 0) });
+    const add = (id: string, e: Entry) => l.entries.set(id, e);
+    add('borrow', transfer(l.categories, { date: '2026-11-20', amount: tk(1000), from: 'rafi', to: 'cash', loanAction: 'borrow' })[0]!.value);
+    add('bill', expenseOrIncome({ kind: 'expense', date: '2026-11-20', amount: tk(1000), accountId: 'city', categoryId: l.cat('Health') })[0]!.value);
+    add('salary', expenseOrIncome({ kind: 'income', date: '2026-11-20', amount: tk(1000), accountId: 'cash', categoryId: l.cat('Salary') })[0]!.value);
+    add('lunch', expenseOrIncome({ kind: 'expense', date: '2026-11-20', amount: tk(1000), accountId: 'cash', categoryId: l.cat('Eating Out') })[0]!.value);
+    add('lunch2', expenseOrIncome({ kind: 'expense', date: '2026-11-20', amount: tk(1000), accountId: 'cash', categoryId: l.cat('Eating Out') })[0]!.value);
+    expect(combinePlan(l, 'borrow', 'bill')).toMatchObject({ ok: false, reason: expect.stringMatching(/same account/) });
+    expect(combinePlan(l, 'salary', 'lunch')).toMatchObject({ ok: false, reason: expect.stringMatching(/income and spending/) });
+    expect(combinePlan(l, 'lunch', 'lunch2')).toMatchObject({ ok: false });
   });
 });
 

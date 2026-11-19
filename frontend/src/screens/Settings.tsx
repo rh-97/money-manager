@@ -391,7 +391,7 @@ function RecoverySection() {
 function RecentlyDeleted() {
   const { ledger, save } = useApp();
   const [confirmEmpty, setConfirmEmpty] = useState(false);
-  const deleted = useMemo(() => [...ledger.entries].filter(([, e]) => e.deletedAt && !e.parentId).sort(([, a], [, b]) => b.deletedAt!.localeCompare(a.deletedAt!)), [ledger]);
+  const deleted = useMemo(() => [...ledger.entries].filter(([, e]) => e.deletedAt && !e.parentId && !e.combinedInto).sort(([, a], [, b]) => b.deletedAt!.localeCompare(a.deletedAt!)), [ledger]);
   const withChildren = (id: string) => [...ledger.entries].filter(([cid, c]) => cid === id || c.parentId === id);
   const restore = (id: string) => save(withChildren(id).map(([cid, c]) => ({ id: cid, type: 'entry' as const, value: { ...c, deletedAt: undefined } })), 'Restored');
   const eraseAll = () => {

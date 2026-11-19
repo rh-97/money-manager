@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { amountInputValue, fmtDate, fmtMoney, parseAmount } from '../lib/format.ts';
 import { accountLabel } from '../money/calc.ts';
+import { uncombine } from '../money/actions.ts';
 import type { Entry } from '../money/types.ts';
 import { describeEntry, useApp, type Change } from '../ui/ctx.tsx';
 import { Icon } from '../ui/icons.tsx';
@@ -16,6 +17,15 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
   const to = e.toAccountId ? ledger.accounts.get(e.toAccountId) : undefined;
   const children = [...ledger.entries].filter(([, c]) => c.parentId === id && !c.deletedAt);
   const parent = e.parentId ? ledger.entries.get(e.parentId) : undefined;
+
+  // Entries a person paid or received for you touch none of your own accounts (6.6).
+  const touchesMoney = acct?.kind === 'money' || to?.kind === 'money';
+  const undo = e.combinedFrom ? uncombine(ledger, id) : null;
+  async function undoCombine() {
+    if (!undo) return;
+    const changes: Change[] = undo.map((c) => ('delete' in c ? c : { id: c.id, type: 'entry' as const, value: c.value }));
+    if (await save(changes, 'Back to the two original entries')) onClose();
+  }
 
   async function remove() {
     const stamp = new Date().toISOString();
@@ -45,7 +55,7 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
               <span>{fmtDate(e.date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
             <div className="kv">
-              <span className="muted">{e.kind === 'transfer' ? 'From' : 'Account'}</span>
+              <span className="muted">{e.kind === 'transfer' ? 'From' : acct?.kind === 'loan' && e.loanAction !== 'writeoff' ? (e.kind === 'income' ? 'Received by' : 'Paid by') : 'Account'}</span>
               <span>{acct ? accountLabel(acct) : 'Deleted account'}</span>
             </div>
             {to && (
@@ -83,7 +93,11 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
                 <button className="link" onClick={() => openEntry(e.parentId!)}>Open</button>
               </p>
             )}
-            {(e.kind === 'transfer' || e.kind === 'correction') && <p className="small-muted">Not counted as spending or income.</p>}
+            {(e.kind === 'transfer' || e.kind === 'correction') && <p className="small-muted">Not counted as spending or income.{touchesMoney ? '' : ' None of your accounts changed.'}</p>}
+            {(e.kind === 'expense' || e.kind === 'income') && !touchesMoney && e.loanAction !== 'writeoff' && (
+              <p className="small-muted">Counts as {e.kind === 'income' ? 'income' : 'spending'}. None of your accounts changed.</p>
+            )}
+            {e.combinedFrom && <p className="small-muted">Made by combining two entries.{undo ? '' : ' The originals are no longer kept, so it can’t be undone.'}</p>}
           </div>
           {e.loanAction === 'offset' && <p className="small-muted">To change a cancel-out, delete it and cancel out again from the Loans page.</p>}
           <div className={e.loanAction === 'offset' ? '' : 'two'}>
@@ -96,6 +110,11 @@ export function EntrySheet({ id, onClose }: { id: string; onClose: () => void })
               <Icon name="trash" /> Delete
             </button>
           </div>
+          {undo && (
+            <button className="btn ghost block" onClick={() => void undoCombine()}>
+              <Icon name="back" /> Undo combine
+            </button>
+          )}
           {children.length > 0 && <p className="small-muted">Deleting also removes the linked {children.length === 1 ? 'entry' : 'entries'} above.</p>}
         </>
       )}

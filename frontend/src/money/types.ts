@@ -77,6 +77,10 @@ export interface Entry {
   createdAt: string; // ISO time, orders entries within a day
   /** Set when moved to Recently deleted. */
   deletedAt?: string;
+  /** Made by combining two entries (6.7): the ids of the originals, kept for "Undo combine". */
+  combinedFrom?: string[];
+  /** An original that was combined into another entry; hidden from Recently deleted. */
+  combinedInto?: string;
 }
 
 export interface OwnRatePeriod {

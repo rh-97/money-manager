@@ -328,6 +328,37 @@ Every money event is an **entry**.
 - After 30 days they are erased permanently. Because the server can't read records, the app does this the next time the user opens it.
 - **Empty now** erases them immediately, after confirmation.
 
+### 6.6 People as accounts
+
+Every person or organization in Loans is an account too. Its balance says where I stand with them: positive = they owe me (or are holding my money), negative = I owe them, zero = settled. So **wherever a form asks for one of my accounts, it also offers people**, for events where money went to or came from someone else on my behalf. None of my own accounts changes.
+
+| Form | Field | People group | Example |
+|---|---|---|---|
+| **Expense** | Paid from | *Paid by someone else for me* (and **+ Someone new…**) | Tanvir, who owes me ৳3,000, pays my ৳1,000 internet bill: spending ৳1,000; Tanvir now owes ৳2,000. |
+| **Income** | Received into | *Paid to someone else for me* | A client pays my uncle ৳15,000 for a website: income ৳15,000 (Freelance); I owe my uncle ৳15,000 less. |
+| **Repay** | Paid from / Received into | *Paid by / to someone else for me* (the loan's own person is left out) | Nabila, who owes me ৳4,000, sends ৳1,500 to Sajid, whom I owe ৳6,000: Nabila owes ৳2,500, I owe Sajid ৳4,500. |
+| **Lend / Borrow** | From account / Into account | *Paid by / to someone else for me* | Sajid gives Karim ৳2,000 for me: Karim owes me ৳2,000, I owe Sajid ৳2,000. |
+
+- **What the form shows:** the option lists each person with where I stand ("Tuition · Nabila (owes you ৳4,000)"), and a line under it says what changes: *"Nabila: they owe you ৳4,000 → they owe you ৳2,500. None of your accounts changes."*
+- **Partial amounts** work like any other entry. Interest and fee fields are hidden when a person pays, since none of my accounts is involved.
+- **Paying more through a person than they owe me** is allowed after a warning: *"Nabila owes you only ৳2,500. After this you'd owe them ৳500. Save anyway?"*
+- **How it's listed:** "Nabila paid Sajid for you · Tuition → Laptop · no money moved"; "Internet bill · paid by Tanvir for you"; "Website for XYZ · Freelance · paid to Bike · Uncle for you". The entry's details say "Paid by" or "Received by", and "None of your accounts changed."
+- **Totals:** spending and income count exactly as usual (Stats, Home's month card). Money I have doesn't change; net worth changes only by real income or spending.
+- Both sides must be in the same currency.
+
+### 6.7 Combining two entries
+
+For events first recorded "the long way", e.g. "Tanvir repaid ৳2,000 into Cash" and then "Electricity ৳2,500 from Cash", when really Tanvir paid most of the bill himself.
+
+- **Where:** **Combine** at the top of History. Tap two entries; a bar says whether they can be combined and offers **Preview**.
+- **Rule:** one entry must bring money **into** an account and the other take it **out of the same account**. The money only passed through, so it is left out: the two become one direct entry from where the money came from to where it went (here: *Electricity ৳2,000, paid by Tanvir*).
+- **Unequal amounts:** the smaller amount is combined; what's left of the larger entry stays as its own entry (here: *Electricity ৳500 from Cash*).
+- **Kinds:** transfer + transfer → one transfer (a person-to-person payment when both ends are people); transfer in + expense out → an expense paid from where the money came from; income in + transfer out → income received where it went.
+- **Never changes a balance or a total:** the middle account's in and out cancel each other. Spending and income stay the same in Stats.
+- **Preview:** a sheet shows *These two* and *Become*, with "No balance or total changes", and a **Combine** button.
+- **Not allowed** (with a reason in the bar): entries that don't share an account in opposite directions; income plus spending (already right as two entries); money that went out and came back to the same place; balance corrections; entries with a fee or interest attached; write-offs and cancel-outs; currency exchanges, and taka with dollars.
+- **Undo:** the new entry's details say "Made by combining two entries" and offer **Undo combine**, which brings back the two originals and removes what was made from them. The originals are kept out of sight (not in Recently deleted) and are erased with other deleted entries after 30 days, after which the combine can't be undone.
+
 ---
 
 ## 7. Loans (loan accounts)
@@ -771,3 +802,4 @@ Automated tests are written alongside each milestone, not at the end. M1 comes f
 | 16 Nov 2026 | **Loans by reason and by person**, at the owner's request: each loan can say **what it's for**, shown as its headline with the person underneath (7.1). The Loans page **groups a person's loans** in both tabs and in Settled, with an overall line when loans go both ways; each loan keeps its own settings, such as Show on Home. Renaming a person can rename all their loans. **Cancel out** (7.9) cancels loans in opposite directions with the same person, the smaller side in full, oldest first, with no money moved. |
 | 16 Nov 2026 | **Show on Home** for money accounts (4.1), separate from "Include in total", at the owner's request. **Card contrast** dial in Settings > Look (11), after the owner approved a mockup (`docs/design/mockup-contrast.html`); the default is now *Medium*, slightly more contrast than before (*Original*). **UI fix:** icons in link-style buttons (e.g. "Delete this account") are centred on the text. |
 | 19 Nov 2026 | **UI fix:** entry rows (Home's Recent, History, account and loan histories) had lost their spacing and divider lines; rows now have 12 px above and below, a small gap between title and subtitle, and roomier detail rows in the entry sheet. |
+| 20 Nov 2026 | **People as accounts** (6.6) and **Combining two entries** (6.7), at the owner's request: people in Loans can stand in for an account in Expense, Income, Repay, Lend and Borrow (e.g. a friend pays someone I owe; a client pays my uncle), and two entries that passed through one account can be combined into one direct entry, with undo. Rollback point before this change: tag `before-people-as-accounts`. |

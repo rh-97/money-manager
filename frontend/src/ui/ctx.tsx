@@ -4,7 +4,7 @@ import type { Change, Vault } from '../lib/vault.ts';
 import { accountLabel, balances, loanTitle, type Ledger } from '../money/calc.ts';
 import { fmtMoney } from '../lib/format.ts';
 import type { Entry } from '../money/types.ts';
-import { ACCOUNT_ICONS, Chip } from './icons.tsx';
+import { ACCOUNT_ICONS, Chip, Icon } from './icons.tsx';
 
 export type AddKind = 'expense' | 'income' | 'transfer' | 'exchange' | 'lend' | 'borrow' | 'repay' | 'writeoff' | 'correction';
 export interface AddPreset {
@@ -64,11 +64,11 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
   switch (e.kind) {
     case 'expense':
     case 'income': {
-      const onLoan = acct?.kind === 'loan';
+      const onLoan = acct?.kind === 'loan' && e.loanAction !== 'writeoff';
       return {
         icon: <Chip icon={e.kind === 'income' ? 'in' : (cat?.icon ?? 'dots')} slot={cat?.slot ?? 0} />,
         title: e.note || cat?.name || (e.kind === 'income' ? 'Income' : 'Expense'),
-        sub: `${cat?.name ?? 'No category'} · ${onLoan && acct ? (e.kind === 'expense' ? `paid by ${acct.name}, you owe them${acct.purpose?.trim() ? ` (${acct.purpose.trim()})` : ''}` : `Loan: ${accountLabel(acct)}`) : (acct?.name ?? '')}`,
+        sub: `${cat?.name ?? 'No category'} · ${onLoan && acct ? (e.kind === 'expense' ? `paid by ${accountLabel(acct)} for you` : `paid to ${accountLabel(acct)} for you`) : acct?.kind === 'loan' ? `Loan: ${accountLabel(acct)}` : (acct?.name ?? '')}`,
         amount: <span className={e.kind === 'income' ? 'pos' : 'neg'}>{fmtMoney(e.kind === 'income' ? e.amount : -e.amount, cur, { sign: true })}</span>,
       };
     }
@@ -87,6 +87,20 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
     case 'transfer': {
       const fromLoan = acct?.kind === 'loan';
       const toLoan = to?.kind === 'loan';
+      if (fromLoan && toLoan && e.loanAction !== 'offset') {
+        // One person paid another for me (6.6): both loans change, none of my accounts does.
+        return {
+          icon: <Chip icon="transfer" />,
+          title: e.note || `${acct!.name} paid ${to!.name} for you`,
+          sub: `${loanTitle(acct!)} → ${loanTitle(to!)} · no money moved`,
+          amount: (
+            <>
+              {fmtMoney(e.amount, cur)}
+              <small>Paid for you</small>
+            </>
+          ),
+        };
+      }
       if (fromLoan && toLoan) {
         // Two loans with the same person cancelled against each other (7.9); no money moved.
         return {
@@ -133,11 +147,13 @@ export function describeEntry(l: Ledger, e: Entry): { icon: ReactNode; title: st
   }
 }
 
-export function EntryRow({ id, e }: { id: string; e: Entry }) {
+/** One entry in a list. With `onPick`, tapping selects it instead of opening it (History's Combine). */
+export function EntryRow({ id, e, picked, onPick }: { id: string; e: Entry; picked?: boolean; onPick?: () => void }) {
   const { ledger, openEntry } = useApp();
   const v = describeEntry(ledger, e);
   return (
-    <button className="row row-btn" onClick={() => openEntry(id)}>
+    <button className={`row row-btn${picked ? ' picked' : ''}`} aria-pressed={onPick ? Boolean(picked) : undefined} onClick={() => (onPick ? onPick() : openEntry(id))}>
+      {onPick && <span className="pick-box" aria-hidden="true">{picked && <Icon name="check" />}</span>}
       {v.icon}
       <span className="row-main">
         <span className="row-title">{v.title}</span>

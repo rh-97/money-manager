@@ -4,7 +4,7 @@
  * child entries linked by parentId, so stats count them as real spending/income.
  */
 import { randomId } from '@mm/shared';
-import type { OffsetPair } from './calc.ts';
+import type { CombinePlan, Ledger, OffsetPair } from './calc.ts';
 import type { Category, Entry, LoanAction, SystemCategory } from './types.ts';
 
 export interface NewEntry {
@@ -158,4 +158,30 @@ export function cancelOut(pairs: OffsetPair[], date: string): NewEntry[] {
     });
   }
   return out;
+}
+
+/**
+ * Saves a combine (6.7): the two originals move out of sight (kept for "Undo combine"),
+ * and the direct entry, plus any leftover, takes their place.
+ */
+export function combine(l: Ledger, plan: Extract<CombinePlan, { ok: true }>): { id: string; value: Entry }[] {
+  const stamp = new Date().toISOString();
+  const combinedId = randomId();
+  const out: { id: string; value: Entry }[] = [{ id: combinedId, value: plan.combined }];
+  if (plan.leftover) out.push({ id: randomId(), value: plan.leftover });
+  for (const id of [plan.inflowId, plan.outflowId]) out.push({ id, value: { ...l.entries.get(id)!, deletedAt: stamp, combinedInto: combinedId } });
+  return out;
+}
+
+/** Undoes a combine: the originals come back and the entries made from them are removed. */
+export function uncombine(l: Ledger, combinedId: string): ({ id: string; value: Entry } | { id: string; delete: true })[] | null {
+  const e = l.entries.get(combinedId);
+  const from = e?.combinedFrom;
+  if (!from || !from.every((id) => l.entries.has(id))) return null;
+  const made = [...l.entries].filter(([, x]) => x.combinedFrom && x.combinedFrom.join() === from.join()).map(([id]) => ({ id, delete: true as const }));
+  const restored = from.map((id) => {
+    const { combinedInto: _c, deletedAt: _d, ...rest } = l.entries.get(id)!;
+    return { id, value: rest as Entry };
+  });
+  return [...restored, ...made];
 }

@@ -366,3 +366,80 @@ export function offsetPlan(l: Ledger, loanIds: string[]): OffsetPair[] {
 
 /** Whether a money account is listed on Home (4.1). Accounts saved before the switch existed follow "count in the Home total". */
 export const shownOnHome = (a: Account): boolean => a.showOnHome ?? a.includeInTotal;
+
+// ---------- Combining two entries (spec 6.7) ----------
+
+const OUTSIDE = 'outside';
+
+/** Where an entry's money comes from and goes to; OUTSIDE for spending and income. Null when it can't be combined. */
+function ends(e: Entry): { from: string; to: string } | null {
+  if (e.kind === 'expense') return { from: e.accountId, to: OUTSIDE };
+  if (e.kind === 'income') return { from: OUTSIDE, to: e.accountId };
+  if (e.kind === 'transfer' && e.toAccountId) return { from: e.accountId, to: e.toAccountId };
+  return null;
+}
+
+export type CombinePlan =
+  | { ok: false; reason: string }
+  | {
+      ok: true;
+      /** The account the money only passed through. */
+      middle: string;
+      amount: number;
+      inflowId: string;
+      outflowId: string;
+      /** The direct entry that replaces the two. */
+      combined: Entry;
+      /** What's left of the larger entry, if the amounts differ. */
+      leftover: Entry | null;
+    };
+
+/**
+ * Two entries where money came into an account and went straight out again become one
+ * direct entry (and a leftover when the amounts differ). Balances and totals never change:
+ * the middle account's in and out cancel each other.
+ */
+export function combinePlan(l: Ledger, aId: string, bId: string): CombinePlan {
+  const a = l.entries.get(aId);
+  const b = l.entries.get(bId);
+  if (!a || !b || a.deletedAt || b.deletedAt) return { ok: false, reason: 'One of these entries no longer exists.' };
+  const hasChildren = (id: string) => [...l.entries.values()].some((c) => c.parentId === id && !c.deletedAt);
+  for (const [id, e] of [[aId, a], [bId, b]] as const) {
+    if (e.kind === 'correction') return { ok: false, reason: 'Balance corrections can’t be combined.' };
+    if (e.parentId || hasChildren(id)) return { ok: false, reason: 'Entries with a fee or interest attached can’t be combined.' };
+    if (e.loanAction === 'writeoff' || e.loanAction === 'offset') return { ok: false, reason: 'Write-offs and cancel-outs can’t be combined.' };
+    if (e.toAmount !== undefined) return { ok: false, reason: 'Currency exchanges can’t be combined.' };
+  }
+  const ea = ends(a)!;
+  const eb = ends(b)!;
+  let inflowId: string, outflowId: string, inflow: Entry, outflow: Entry, middle: string;
+  if (ea.to !== OUTSIDE && ea.to === eb.from) [inflowId, inflow, outflowId, outflow, middle] = [aId, a, bId, b, ea.to];
+  else if (eb.to !== OUTSIDE && eb.to === ea.from) [inflowId, inflow, outflowId, outflow, middle] = [bId, b, aId, a, eb.to];
+  else return { ok: false, reason: 'These don’t pass through the same account: one has to bring money into an account and the other take it out of that same account.' };
+  const src = ends(inflow)!.from;
+  const dst = ends(outflow)!.to;
+  if (src === OUTSIDE && dst === OUTSIDE) return { ok: false, reason: 'This is income and spending. They are already right as two entries, because both count in Stats.' };
+  if (src === dst) return { ok: false, reason: 'The money went out and came back to the same place, so there is nothing to combine.' };
+  const cur = (id: string) => (id === OUTSIDE ? null : (l.accounts.get(id)?.currency ?? null));
+  const curs = [cur(src), cur(middle), cur(dst)].filter(Boolean);
+  if (new Set(curs).size > 1) return { ok: false, reason: 'Taka and dollars can’t be combined.' };
+
+  const amount = Math.min(inflow.amount, outflow.amount);
+  const later = inflow.date > outflow.date ? inflow.date : outflow.date;
+  const note = outflow.note || inflow.note;
+  const base = { amount, createdAt: new Date().toISOString(), combinedFrom: [inflowId, outflowId] };
+  let combined: Entry;
+  if (dst === OUTSIDE) {
+    combined = { ...base, kind: 'expense', date: outflow.date, accountId: src, categoryId: outflow.categoryId, note };
+  } else if (src === OUTSIDE) {
+    combined = { ...base, kind: 'income', date: inflow.date, accountId: dst, categoryId: inflow.categoryId, note: inflow.note || outflow.note };
+  } else {
+    const isLoan = (id: string) => l.accounts.get(id)?.kind === 'loan';
+    const loanAction = isLoan(src) && isLoan(dst) ? undefined : isLoan(dst) ? outflow.loanAction : isLoan(src) ? inflow.loanAction : undefined;
+    combined = { ...base, kind: 'transfer', date: later, accountId: src, toAccountId: dst, loanAction, note };
+  }
+  const rest = (e: Entry): Entry => ({ ...e, amount: e.amount - amount, createdAt: new Date().toISOString(), combinedFrom: [inflowId, outflowId], combinedInto: undefined });
+  const leftover = inflow.amount > amount ? rest(inflow) : outflow.amount > amount ? rest(outflow) : null;
+  for (const k of Object.keys(combined) as (keyof Entry)[]) if (combined[k] === undefined) delete combined[k];
+  return { ok: true, middle, amount, inflowId, outflowId, combined, leftover };
+}

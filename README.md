@@ -13,7 +13,8 @@
 - **Track every account in one place:** bank accounts, mobile wallets (like bKash or Nagad), cash in your pocket or in a drawer, credit cards, fixed deposits. Create as many as you like.
 - **Record what happens in a few taps:** expenses, income, moving money between your own accounts (with any fee), and changing taka into dollars or back.
 - **Never forget a loan:** lend or borrow money, then record repayments bit by bit, including partial payments, interest and forgiving what's left. Give each loan a reason ("Fridge") so two loans with the same friend are easy to tell apart; a person's loans are grouped together, and if you owe each other you can **cancel out** the amounts without any money moving. "I owe" and "Owed to me" are always shown clearly apart.
-- **When a friend pays for you:** record the expense as paid by them. It counts as your spending and adds to what you owe them, without touching your accounts.
+- **When someone else pays or gets paid for you:** a friend pays your bill, a friend who owes you pays someone you owe, or a client pays your uncle directly. Pick the person instead of an account; the loans and your spending or income update, and your accounts stay untouched.
+- **Fix records entered the long way:** combine two entries that only passed through an account (e.g. a repayment into Cash that went straight to a bill) into one entry that shows what really happened. No total changes, and it can be undone.
 - **See where your money goes:** monthly spending by category, income against spending, how your money grows over the year, and which days you spent most, with short plain-language notes like *"Food is up 26% on October"*.
 - **Add up any accounts:** pick a few accounts on the Accounts page to see what they hold together, without changing any other total.
 - **Two currencies:** Bangladeshi taka (৳) is the main currency, with US dollars alongside. The dollar rate updates every day, or you can set your own.

@@ -430,3 +430,9 @@ body { margin: 0; }
 .contrast-name { min-width: 76px; font-size: 13.5px; font-weight: 600; }
 .stage.phone .contrast-dial { flex-basis: 100%; }
 .stage.phone .contrast-dial input[type=range] { flex: 1; width: auto; }
+
+/* ---------- History: Combine two entries ---------- */
+.row.row-btn.picked { background: color-mix(in oklab, var(--accent) 8%, transparent); border-radius: 10px; }
+.row.row-btn.picked .pick-box { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.combine-bar { flex-wrap: wrap; }
+.combine-bar .pick-count { flex: 1 1 120px; color: var(--hero-ink); }
