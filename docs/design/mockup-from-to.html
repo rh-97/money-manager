@@ -64,11 +64,13 @@ button { cursor: pointer; }
 .pick .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pick .s { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pick .chev { color: var(--faint); }
-.src-line { display: grid; grid-template-columns: minmax(0, 1fr) 30px; grid-template-areas: "pick x" "amt amt"; gap: 6px 8px; align-items: center; padding-bottom: 6px; }
+.src-line { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px; grid-template-areas: "pick pick x" "amt fee ."; gap: 6px 8px; align-items: center; padding-bottom: 8px; }
 .src-line > .pick { min-width: 0; grid-area: pick; }
-.src-line > input { grid-area: amt; height: 44px !important; }
 .src-line > .x { grid-area: x; }
-@media (min-width: 560px) { .src-line { grid-template-columns: minmax(0, 1fr) 130px 30px; grid-template-areas: "pick amt x"; padding-bottom: 0; } .src-line > input { height: 54px !important; } }
+.src-line > .mini { display: flex; flex-direction: column; gap: 2px; }
+.src-line > .mini.amt { grid-area: amt; } .src-line > .mini.fee { grid-area: fee; }
+.src-line > .mini span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.src-line > .mini input { height: 42px; }
 .src-line.single { grid-template-columns: 1fr; }
 .src-line input { height: 54px; }
 .x { border: 0; background: none; color: var(--faint); font-size: 18px; width: 30px; height: 30px; border-radius: 8px; }
@@ -182,9 +184,9 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
   // ---------- Form state ----------
   const fresh = (preset) => ({
-    sources: [{ pick: preset?.from ?? null, amount: '' }],
+    sources: [{ pick: preset?.from ?? null, amount: '', fee: '' }],
     to: preset?.to === undefined ? { type: 'expense' } : preset.to,
-    total: '', received: '', fee: '', feeFrom: null, expCat: '', incCat: '', note: '', date: new Date().toISOString().slice(0, 10),
+    total: '', received: '', expCat: '', incCat: '', note: '', date: new Date().toISOString().slice(0, 10),
     newFrom: { who: '', why: '' }, newTo: { who: '', why: '' },
   });
   let S = fresh({ from: { type: 'acct', id: lastFrom } });
@@ -199,10 +201,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   const totalAmount = () => (multi() ? S.sources.reduce((s, _, i) => s + lineAmount(i), 0) : parse(S.total));
   const hasIncome = () => S.sources.some((x) => x.pick?.type === 'income');
   const toExpense = () => S.to?.type === 'expense';
-  /** Your own accounts among the sources: only these can pay a fee. */
-  const feeAccounts = () => [...new Set(S.sources.filter((x) => x.pick?.type === 'acct').map((x) => x.pick.id))];
-  /** The account the fee comes from: the one chosen, or the first of your accounts among the sources. */
-  const feePayer = () => (feeAccounts().includes(S.feeFrom) ? S.feeFrom : feeAccounts()[0]);
+  /** Each of your own accounts among the sources can have its own fee (a person or Income can't). */
+  const lineFee = (i) => (S.sources[i].pick?.type === 'acct' ? parse(S.sources[i].fee) : 0);
 
   function personOf(p, side) {
     if (p?.type === 'loan') return loan(p.id).person;
@@ -261,13 +261,12 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
     });
     S.sources.forEach((x, i) => {
       if (x.pick?.type !== 'acct') return;
-      const a = acc(x.pick.id); const after = a.bal - lineAmount(i) - (x.pick.id === feePayer() && i === S.sources.findIndex((y) => y.pick?.id === x.pick.id) ? parse(S.fee) : 0);
+      const a = acc(x.pick.id); const after = a.bal - lineAmount(i) - lineFee(i);
       if (after < 0 && a.bal >= 0) warns.push(`${a.name} would go below zero (${money(after, a.cur)}).`);
     });
-    if (parse(S.fee) && feePayer() && lines.length) {
-      const fa = acc(feePayer());
-      lines.push(`Plus a ${money(parse(S.fee), fa.cur)} fee from ${fa.name} (Fees & charges).`);
-    }
+    if (lines.length) S.sources.forEach((x, i) => {
+      if (lineFee(i)) { const fa = acc(x.pick.id); lines.push(`Plus a ${money(lineFee(i), fa.cur)} fee from ${fa.name} (Fees & charges).`); }
+    });
     if (S.to?.type === 'loan' && loan(S.to.id).bal < 0 && totalAmount() > -loan(S.to.id).bal) warns.push(`You owe ${loan(S.to.id).person} only ${money(-loan(S.to.id).bal)} on ${loan(S.to.id).purpose}. After this they'd owe you ${money(totalAmount() + loan(S.to.id).bal)}.`);
     return { lines, warns, errs, crossCur, toInfo, fromCur };
   }
@@ -279,7 +278,7 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
     if (p?.type !== 'loan' || !total) return;
     const owed = loan(p.id).bal;
     if (owed > 0 && total > owed) {
-      S.sources = [{ pick: p, amount: String(owed / 100) }, { pick: null, amount: String((total - owed) / 100), auto: true }];
+      S.sources = [{ pick: p, amount: String(owed / 100), fee: '' }, { pick: null, amount: String((total - owed) / 100), fee: '', auto: true }];
     }
   }
 
@@ -318,9 +317,10 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
       const kind = from.type === 'income' ? 'Income' : to.type === 'expense' ? 'Expense' : 'Transfer';
       recs.push({ kind, text: `${money(a, fromCur)}${crossCur ? ' → ' + money(parse(S.received), toInfo.cur) : ''}`, sub: `${from.type === 'income' ? 'Income · ' + S.incCat : fromLabel} → ${toLabel}${kind === 'Income' ? ' · counts as income' : kind === 'Expense' ? ' · counts as spending' : ''}` });
     });
-    const fee = parse(S.fee);
-    const payer = feePayer();
-    if (fee && payer) { const fa = acc(payer); fa.bal -= fee; recs.push({ kind: 'Expense', text: money(fee, fa.cur), sub: `Fees & charges · from ${fa.name} · linked to the entry · counts as spending` }); }
+    S.sources.forEach((x, i) => {
+      const fee = lineFee(i);
+      if (fee) { const fa = acc(x.pick.id); fa.bal -= fee; recs.push({ kind: 'Expense', text: money(fee, fa.cur), sub: `Fees & charges · from ${fa.name} · linked to the entry · counts as spending` }); }
+    });
     const firstAcct = S.sources.find((x) => x.pick?.type === 'acct');
     if (firstAcct) lastFrom = firstAcct.pick.id;
     result = { recs, changes: diff(before, snapshot()) };
@@ -354,7 +354,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
   function renderForm() {
     const A = analyse();
-    const showFee = feeAccounts().length > 0;
+    // One source: the fee box sits next to the date. Several: each of your accounts has its own fee box.
+    const showFee = !multi() && S.sources[0].pick?.type === 'acct';
     const newFrom = S.sources.some((x) => x.pick?.type === 'new');
     const sym = A.fromCur === 'USD' ? '$' : '৳';
     app.innerHTML = `
@@ -367,7 +368,7 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
         ${multi() ? '' : `<div class="amount"><span>${sym}</span><input id="total" inputmode="decimal" placeholder="0" value="${esc(S.total)}" aria-label="Amount"></div>`}
         <div class="side">
           <div class="side-head"><p class="label">From</p>${multi() ? `<span class="small num">Total ${money(totalAmount(), A.fromCur)}</span>` : ''}</div>
-          ${S.sources.map((x, i) => `<div class="src-line ${multi() ? '' : 'single'}">${pickButton(x.pick, 'from', i)}${multi() ? `<input inputmode="decimal" data-amt="${i}" placeholder="${sym}0" value="${esc(x.amount)}" aria-label="Amount from source ${i + 1}"><button class="x" data-remove="${i}" aria-label="Remove this source">×</button>` : ''}</div>`).join('')}
+          ${S.sources.map((x, i) => `<div class="src-line ${multi() ? '' : 'single'}">${pickButton(x.pick, 'from', i)}${multi() ? `<label class="mini amt"><span>Amount</span><input inputmode="decimal" data-amt="${i}" placeholder="${sym}0" value="${esc(x.amount)}" aria-label="Amount from source ${i + 1}"></label>${x.pick?.type === 'acct' ? `<label class="mini fee"><span>Fee (optional)</span><input inputmode="decimal" data-fee="${i}" placeholder="0" value="${esc(x.fee)}" aria-label="Fee for source ${i + 1}"></label>` : ''}<button class="x" data-remove="${i}" aria-label="Remove this source">×</button>` : ''}</div>`).join('')}
           <button class="link" data-add-source>＋ Add another source</button>
           ${S.sources.some((x) => x.auto) ? `<p class="small">The person owes you less than the amount, so the rest needs another source: one of your accounts, or a new loan if they paid it all.</p>` : ''}
         </div>
@@ -383,9 +384,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
         ${A.crossCur ? `<div class="field"><label for="recv">Amount received (${A.toInfo.cur === 'USD' ? '$' : '৳'})</label><input id="recv" inputmode="decimal" value="${esc(S.received)}" placeholder="0"></div>` : ''}
         <div class="two">
           <div class="field"><label for="date">Date</label><input type="date" id="date" value="${esc(S.date)}"></div>
-          ${showFee ? `<div class="field"><label for="fee">Fee (optional)</label><input id="fee" inputmode="decimal" value="${esc(S.fee)}" placeholder="0"></div>` : '<div></div>'}
+          ${showFee ? `<div class="field"><label for="fee">Fee (optional)</label><input id="fee" inputmode="decimal" value="${esc(S.sources[0].fee)}" placeholder="0"></div>` : '<div></div>'}
         </div>
-        ${showFee && parse(S.fee) && feeAccounts().length > 1 ? `<div class="field"><label>Fee paid from</label><div class="chips">${feeAccounts().map((id) => `<button aria-pressed="${id === feePayer()}" data-fee-from="${id}">${esc(acc(id).name)}</button>`).join('')}</div></div>` : ''}
         <div class="field"><label for="note">Note (optional)</label><input type="text" id="note" value="${esc(S.note)}" placeholder="e.g. Dinner with family"></div>
         <div class="sentence" aria-live="polite">
           ${A.lines.length ? (A.lines.length === 1 ? `<p class="lead">${esc(A.lines[0])}</p>` : `<p class="lead">This records ${A.lines.length} things:</p><ul>${A.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`) : '<p class="small">Choose From and To, and a sentence here will say what you are recording.</p>'}
@@ -486,7 +486,7 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
     }
     if ('addSource' in d) {
       if (!multi()) S.sources[0].amount = S.total;
-      S.sources.push({ pick: null, amount: '' }); return render();
+      S.sources.push({ pick: null, amount: '', fee: '' }); return render();
     }
     if (d.remove) {
       S.sources.splice(Number(d.remove), 1);
@@ -494,7 +494,6 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
       return render();
     }
     if ('moreCats' in d) { allCats = true; return render(); }
-    if (d.feeFrom) { S.feeFrom = d.feeFrom; return render(); }
     if (d.cat) {
       const which = t.closest('[data-cats]').dataset.cats;
       if (which === 'exp') S.expCat = S.expCat === d.cat ? '' : d.cat; else S.incCat = S.incCat === d.cat ? '' : d.cat;
@@ -516,7 +515,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
     else if (t.dataset.amt) S.sources[Number(t.dataset.amt)].amount = t.value;
     else if (t.id === 'nf-who') S.newFrom.who = t.value; else if (t.id === 'nf-why') S.newFrom.why = t.value;
     else if (t.id === 'nt-who') S.newTo.who = t.value; else if (t.id === 'nt-why') S.newTo.why = t.value;
-    else if (t.id === 'recv') S.received = t.value; else if (t.id === 'fee') S.fee = t.value;
+    else if (t.id === 'recv') S.received = t.value; else if (t.id === 'fee') S.sources[0].fee = t.value;
+    else if (t.dataset.fee) S.sources[Number(t.dataset.fee)].fee = t.value;
     else if (t.id === 'note') S.note = t.value; else if (t.id === 'date') S.date = t.value; else if (t.id === 'real') S.fixReal = t.value;
     else return;
     render();
