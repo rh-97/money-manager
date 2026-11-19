@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From and To Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+<style>
+/* Mockup of the From / To "Add" screen. Colours follow the app's Colour style. Nothing is saved. */
+:root {
+  --bg: #e5e9f0; --surface: #ffffff; --surface-2: #eaf0f8; --ink: #13202f; --muted: #536072; --faint: #8794a6; --line: #dde4ee;
+  --accent: #2a78d6; --on-accent: #ffffff; --pos: #17803d; --neg: #c23a31; --warn-bg: #fff4e0; --warn-ink: #7a4b00; --err-bg: #fbebea;
+  --edge: rgba(16,24,40,.07); --shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.03);
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; --display: "Manrope", "Inter", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070b13; --surface: #182130; --surface-2: #1f2a3c; --ink: #eef3fa; --muted: #a7b3c5; --faint: #7a889c; --line: #2a3850;
+    --accent: #4f95ea; --on-accent: #08111f; --pos: #52c47f; --neg: #f2766d; --warn-bg: #33270f; --warn-ink: #f3cf8a; --err-bg: #3a1c1a;
+    --edge: rgba(255,255,255,.06); --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #070b13; --surface: #182130; --surface-2: #1f2a3c; --ink: #eef3fa; --muted: #a7b3c5; --faint: #7a889c; --line: #2a3850;
+  --accent: #4f95ea; --on-accent: #08111f; --pos: #52c47f; --neg: #f2766d; --warn-bg: #33270f; --warn-ink: #f3cf8a; --err-bg: #3a1c1a;
+  --edge: rgba(255,255,255,.06); --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+
+.mock-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 16px; border-bottom: 1px dashed var(--line); font-size: 12.5px; color: var(--muted); }
+.mock-bar strong { color: var(--ink); }
+.mock-bar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.mock-bar .seg button { border: 0; background: none; padding: 4px 10px; font-size: 12.5px; }
+.mock-bar .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.wrap { max-width: 520px; margin: 0 auto; padding: 16px 16px 48px; display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border-radius: 20px; padding: 16px; box-shadow: 0 0 0 1px var(--edge), var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+.title { display: flex; align-items: center; justify-content: space-between; }
+.title h1 { font-family: var(--display); font-size: 22px; margin: 0; }
+.small { font-size: 12.5px; color: var(--muted); margin: 0; }
+.label { font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 0; text-transform: uppercase; letter-spacing: .05em; }
+
+.quick { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.quick button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 13px; font-weight: 600; font-size: 13.5px; }
+.quick button:hover { border-color: var(--accent); }
+
+.side { display: flex; flex-direction: column; gap: 8px; }
+.side-head { display: flex; align-items: baseline; justify-content: space-between; }
+.pick { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 10px 12px; min-height: 54px; }
+.pick:hover { border-color: var(--accent); }
+.pick.empty { border-style: dashed; color: var(--muted); }
+.pick .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); font-size: 15px; font-weight: 700; }
+.ic.inc { background: #e3f4e9; color: #17803d; } .ic.exp { background: #fbe9e7; color: #c23a31; } .ic.new { background: var(--surface-2); color: var(--accent); }
+:root[data-theme="dark"] .ic.inc { background: #13261a !important; color: #52c47f !important; } :root[data-theme="dark"] .ic.exp { background: #2d1816 !important; color: #f2766d !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ic.inc { background: #13261a !important; color: #52c47f !important; } :root:not([data-theme="light"]) .ic.exp { background: #2d1816 !important; color: #f2766d !important; } }
+.pick .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pick .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .s { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .chev { color: var(--faint); }
+.src-line { display: grid; grid-template-columns: minmax(0, 1fr) 30px; grid-template-areas: "pick x" "amt amt"; gap: 6px 8px; align-items: center; padding-bottom: 6px; }
+.src-line > .pick { min-width: 0; grid-area: pick; }
+.src-line > input { grid-area: amt; height: 44px !important; }
+.src-line > .x { grid-area: x; }
+@media (min-width: 560px) { .src-line { grid-template-columns: minmax(0, 1fr) 130px 30px; grid-template-areas: "pick amt x"; padding-bottom: 0; } .src-line > input { height: 54px !important; } }
+.src-line.single { grid-template-columns: 1fr; }
+.src-line input { height: 54px; }
+.x { border: 0; background: none; color: var(--faint); font-size: 18px; width: 30px; height: 30px; border-radius: 8px; }
+.x:hover { background: var(--surface-2); color: var(--ink); }
+.link { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 13.5px; padding: 4px 0; align-self: flex-start; }
+.arrow { text-align: center; color: var(--faint); font-size: 18px; margin: -4px 0; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+input[type=text], input[type=date], input[inputmode=decimal] { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 0 12px; height: 46px; }
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.amount { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; }
+.amount span { font-family: var(--display); font-size: 26px; color: var(--muted); }
+.amount input { border: 0; height: 52px; font-family: var(--display); font-size: 30px; font-weight: 700; padding: 0; outline: none; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sub-box { background: var(--surface-2); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 11px; font-size: 13.5px; }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+
+.sentence { border-radius: 14px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+.sentence p { margin: 0; }
+.sentence .lead { font-weight: 600; }
+.sentence ul { margin: 0; padding-left: 18px; }
+.msg { border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.msg.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.msg.err { background: var(--err-bg); color: var(--neg); }
+.btn { border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; min-height: 48px; padding: 0 18px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+
+.result { display: flex; flex-direction: column; gap: 10px; }
+.rec { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.rec:first-of-type { border-top: 0; }
+.rec .k { font-size: 12px; color: var(--muted); }
+.changes { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.changes td { padding: 6px 0; border-top: 1px solid var(--line); }
+.changes td:last-child { text-align: right; }
+
+/* Picker sheet */
+.scrim { position: fixed; inset: 0; background: rgba(10,12,14,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet { width: 100%; max-width: 520px; max-height: 84vh; overflow: auto; background: var(--surface); border-radius: 20px 20px 0 0; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+@media (min-width: 700px) { .scrim { align-items: center; } .sheet { border-radius: 20px; } }
+.sheet h2 { font-family: var(--display); font-size: 18px; margin: 4px 0; display: flex; justify-content: space-between; align-items: center; }
+.group { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 10px 2px 0; }
+.opt { display: flex; align-items: center; gap: 10px; border: 0; background: none; text-align: left; padding: 9px 8px; border-radius: 12px; width: 100%; }
+.opt:hover, .opt.hl { background: var(--surface-2); }
+.opt:disabled { opacity: .4; cursor: not-allowed; }
+.opt .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); font-weight: 700; }
+.opt .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.opt .t { font-weight: 600; }
+.opt .s { font-size: 12.5px; color: var(--muted); }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+</style>
+</head>
+<body>
+<div class="mock-bar">
+  <span><strong>From / To mockup</strong> · sample data · nothing is saved</span>
+  <span class="seg" id="theme"><button data-t="light">Light</button><button data-t="dark">Dark</button><button data-t="system">Auto</button></span>
+  <button class="link" id="reset-data" style="font-size:12.5px">Reset sample data</button>
+</div>
+<div class="wrap" id="app"></div>
+<div id="layer"></div>
+
+<script>
+(() => {
+  // ---------- Sample data ----------
+  const ACCOUNTS = [
+    { id: 'city', name: 'City Bank', cur: 'BDT', bal: 5000000, ic: '🏦' },
+    { id: 'bkash', name: 'bKash', cur: 'BDT', bal: 300000, ic: '📱' },
+    { id: 'cash', name: 'Cash', cur: 'BDT', bal: 150000, ic: '💵' },
+    { id: 'usd', name: 'Dollar account', cur: 'USD', bal: 32000, ic: '$' },
+  ];
+  // Loans: + = they owe me, - = I owe them. Settled ones are hidden from the lists.
+  const LOANS = [
+    { id: 'bike', person: 'Rafi', purpose: 'Bike repair', bal: 700000 },
+    { id: 'rent', person: 'Rafi', purpose: 'Rent share', bal: -400000 },
+    { id: 'fridge', person: 'Rafi', purpose: 'Fridge', bal: 0 },
+    { id: 'tuition', person: 'Nabila', purpose: 'Tuition', bal: 400000 },
+    { id: 'laptop', person: 'Sajid', purpose: 'Laptop', bal: -600000 },
+    { id: 'uncle', person: 'Uncle', purpose: 'Bike', bal: -2000000 },
+  ];
+  const EXPENSE_CATS = ['Food', 'Groceries', 'Eating out', 'Transport', 'Rent', 'Electricity', 'Gas & water', 'Internet & mobile', 'Health', 'Education', 'Clothing', 'Household', 'Gifts given', 'Charity & Zakat', 'Family support', 'Entertainment', 'Travel', 'Fees & charges', 'Other'];
+  const INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Bonus', 'Gift received', 'Interest & profit', 'Rent received', 'Refund', 'Other'];
+
+  let accounts, loans;
+  const resetData = () => { accounts = ACCOUNTS.map((a) => ({ ...a })); loans = LOANS.map((l) => ({ ...l })); };
+  resetData();
+  let lastFrom = 'cash';
+
+  // ---------- Helpers ----------
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const money = (minor, cur = 'BDT') => (minor < 0 ? '−' : '') + (cur === 'USD' ? '$' : '৳') + (Math.abs(minor) / 100).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 });
+  const parse = (s) => { const n = Number(String(s).replace(/[^0-9.]/g, '')); return s && Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0; };
+  const acc = (id) => accounts.find((a) => a.id === id);
+  const loan = (id) => loans.find((l) => l.id === id);
+  const people = () => [...new Set(loans.map((l) => l.person))];
+  const standing = (b, cur = 'BDT') => (b === 0 ? 'settled' : b > 0 ? `owes you ${money(b, cur)}` : `you owe ${money(-b, cur)}`);
+
+  /** A pick: {type:'acct'|'loan'|'income'|'expense'|'new', id?} */
+  const info = (p, side) => {
+    if (!p) return null;
+    if (p.type === 'acct') { const a = acc(p.id); return { t: a.name, s: money(a.bal, a.cur), ic: a.ic, cur: a.cur, kind: 'acct' }; }
+    if (p.type === 'loan') { const l = loan(p.id); return { t: `${l.purpose} · ${l.person}`, s: standing(l.bal), ic: l.person[0], cur: 'BDT', kind: 'loan', l }; }
+    if (p.type === 'income') return { t: 'Income', s: 'salary, freelance, a gift…', ic: '↓', cls: 'inc', cur: null, kind: 'income' };
+    if (p.type === 'expense') return { t: 'Expense', s: 'shops, bills, gifts, charity…', ic: '↑', cls: 'exp', cur: null, kind: 'expense' };
+    if (p.type === 'new') return { t: '+ New loan', s: side === 'from' ? 'they pay or lend for you; you owe them' : 'you lend to them; they owe you', ic: '+', cls: 'new', cur: 'BDT', kind: 'new' };
+  };
+  const sameTarget = (a, b) => a && b && a.type === b.type && a.id === b.id && (a.type === 'acct' || a.type === 'loan');
+
+  // ---------- Form state ----------
+  const fresh = (preset) => ({
+    sources: [{ pick: preset?.from ?? null, amount: '' }],
+    to: preset?.to === undefined ? { type: 'expense' } : preset.to,
+    total: '', received: '', fee: '', expCat: '', incCat: '', note: '', date: new Date().toISOString().slice(0, 10),
+    newFrom: { who: '', why: '' }, newTo: { who: '', why: '' },
+  });
+  let S = fresh({ from: { type: 'acct', id: lastFrom } });
+  let screen = 'form'; // form | result | fix
+  let result = null;
+  let picker = null; // { side, index, focus }
+  let allCats = false; // show every category instead of the first eight
+
+  // ---------- What the choices mean ----------
+  const multi = () => S.sources.length > 1;
+  const lineAmount = (i) => (multi() ? parse(S.sources[i].amount) : parse(S.total));
+  const totalAmount = () => (multi() ? S.sources.reduce((s, _, i) => s + lineAmount(i), 0) : parse(S.total));
+  const hasIncome = () => S.sources.some((x) => x.pick?.type === 'income');
+  const toExpense = () => S.to?.type === 'expense';
+
+  function personOf(p, side) {
+    if (p?.type === 'loan') return loan(p.id).person;
+    if (p?.type === 'new') {
+      const who = (side === 'from' ? S.newFrom.who : S.newTo.who).trim().replace(/\s+/g, ' ');
+      return people().find((n) => n.toLowerCase() === who.toLowerCase()) ?? (who || 'someone new');
+    }
+    return '';
+  }
+
+  /** One sentence per source line, plus warnings and errors. */
+  function analyse() {
+    const lines = []; const warns = []; const errs = [];
+    if (!S.to) errs.push('Choose where the money goes (To).');
+    S.sources.forEach((x, i) => { if (!x.pick) errs.push(multi() ? `Choose source ${i + 1} (From).` : 'Choose where the money comes from (From).'); });
+    if (S.sources.filter((x) => x.pick?.type === 'income').length > 1) errs.push('Income can only be picked once.');
+    if (S.sources.some((x) => sameTarget(x.pick, S.to))) errs.push('The same account can’t be on both sides.');
+    const curs = new Set(S.sources.map((x) => info(x.pick)?.cur).filter(Boolean));
+    if (curs.size > 1) errs.push('Sources in taka and dollars can’t be mixed in one entry.');
+    if (!totalAmount()) errs.push(multi() ? 'Enter an amount for each source.' : 'Enter the amount.');
+    if (multi() && S.sources.some((_, i) => !lineAmount(i))) errs.push('Enter an amount for each source.');
+    if (toExpense() && !S.expCat) errs.push('Pick what it was spent on.');
+    if (hasIncome() && !S.incCat) errs.push('Pick what kind of income it is.');
+    if (S.sources.some((x) => x.pick?.type === 'new') && !S.newFrom.who.trim()) errs.push('Type who the new loan (From) is with.');
+    if (S.to?.type === 'new' && !S.newTo.who.trim()) errs.push('Type who the new loan (To) is with.');
+    const fromCur = [...curs][0] ?? 'BDT';
+    const toInfo = info(S.to, 'to');
+    const crossCur = toInfo?.cur && fromCur && toInfo.cur !== fromCur;
+    if (crossCur && !parse(S.received)) errs.push(`Enter the amount received in ${toInfo.cur === 'USD' ? 'dollars' : 'taka'}.`);
+
+    const toName = () => {
+      if (!S.to) return '…';
+      if (S.to.type === 'acct') return acc(S.to.id).name;
+      if (S.to.type === 'expense') return S.expCat || 'an expense';
+      return personOf(S.to, 'to');
+    };
+    S.sources.forEach((x, i) => {
+      const a = lineAmount(i); const amt = a ? money(a, fromCur) : '৳…';
+      const p = x.pick; const t = S.to;
+      if (!p || !t) return;
+      const fromLoanOwesMe = p.type === 'loan' && loan(p.id).bal > 0;
+      const toLoanIOwe = t.type === 'loan' && loan(t.id).bal < 0;
+      let s;
+      if (p.type === 'income' && t.type === 'expense') s = `You earn ${amt} (${S.incCat || 'income'}) and it's paid straight to ${S.expCat || 'an expense'}.`;
+      else if (p.type === 'income' && t.type === 'acct') s = `You earn ${amt} (${S.incCat || 'income'}) into ${toName()}.`;
+      else if (p.type === 'income') s = `You earn ${amt} (${S.incCat || 'income'}), paid straight to ${toName()} for you.`;
+      else if (p.type === 'acct' && t.type === 'expense') s = `You spend ${amt} on ${toName()} from ${acc(p.id).name}.`;
+      else if (p.type === 'acct' && t.type === 'acct') s = crossCur ? `You exchange ${amt} from ${acc(p.id).name} into ${money(parse(S.received), toInfo.cur)} in ${toName()}.` : `You move ${amt} from ${acc(p.id).name} to ${toName()}.`;
+      else if (p.type === 'acct') s = toLoanIOwe ? `You pay ${toName()} back ${amt} from ${acc(p.id).name}.` : `You lend ${toName()} ${amt} from ${acc(p.id).name}.`;
+      else if (t.type === 'acct') s = fromLoanOwesMe ? `${personOf(p, 'from')} pays you back ${amt} into ${toName()}.` : `You borrow ${amt} from ${personOf(p, 'from')} into ${toName()}.`;
+      else if (t.type === 'expense') s = fromLoanOwesMe ? `${personOf(p, 'from')} pays ${amt} for ${toName()} for you, out of what they owe you.` : `${personOf(p, 'from')} pays ${amt} for ${toName()} for you; you'll owe them.`;
+      else s = `${personOf(p, 'from')} pays ${toName()} ${amt} for you.`;
+      lines.push(s);
+      // Warnings: a person paying more than they owe; paying back more than you owe.
+      if (fromLoanOwesMe && a > loan(p.id).bal) warns.push(`${loan(p.id).person} owes you only ${money(loan(p.id).bal)} on ${loan(p.id).purpose}. After this you'd owe them ${money(a - loan(p.id).bal)}.`);
+    });
+    S.sources.forEach((x, i) => {
+      if (x.pick?.type !== 'acct') return;
+      const a = acc(x.pick.id); const after = a.bal - lineAmount(i) - (i === S.sources.findIndex((y) => y.pick?.type === 'acct') && !toExpense() ? parse(S.fee) : 0);
+      if (after < 0 && a.bal >= 0) warns.push(`${a.name} would go below zero (${money(after, a.cur)}).`);
+    });
+    if (S.to?.type === 'loan' && loan(S.to.id).bal < 0 && totalAmount() > -loan(S.to.id).bal) warns.push(`You owe ${loan(S.to.id).person} only ${money(-loan(S.to.id).bal)} on ${loan(S.to.id).purpose}. After this they'd owe you ${money(totalAmount() + loan(S.to.id).bal)}.`);
+    return { lines, warns, errs, crossCur, toInfo, fromCur };
+  }
+
+  /** If a person who owes you less than the amount is the only source, fill in what they owe and add a line for the rest. */
+  function autoSplit() {
+    if (multi()) return;
+    const p = S.sources[0].pick; const total = parse(S.total);
+    if (p?.type !== 'loan' || !total) return;
+    const owed = loan(p.id).bal;
+    if (owed > 0 && total > owed) {
+      S.sources = [{ pick: p, amount: String(owed / 100) }, { pick: null, amount: String((total - owed) / 100), auto: true }];
+    }
+  }
+
+  // ---------- Saving (mockup: shows the records it would create) ----------
+  function save() {
+    const { errs, crossCur, toInfo, fromCur } = analyse();
+    if (errs.length) return;
+    const before = snapshot();
+    const recs = [];
+    const ensureNew = (side) => {
+      const f = side === 'from' ? S.newFrom : S.newTo;
+      const who = f.who.trim().replace(/\s+/g, ' ');
+      const canon = people().find((n) => n.toLowerCase() === who.toLowerCase()) ?? who;
+      const l = { id: 'n' + Math.random().toString(36).slice(2, 7), person: canon, purpose: f.why.trim() || S.note.trim() || 'Loan', bal: 0, created: true };
+      loans.push(l);
+      return { type: 'loan', id: l.id };
+    };
+    const to = S.to.type === 'new' ? ensureNew('to') : S.to;
+    let newFromPick = null;
+    const move = (pick, delta) => {
+      if (pick.type === 'acct') acc(pick.id).bal += delta;
+      if (pick.type === 'loan') loan(pick.id).bal += delta;
+    };
+    S.sources.forEach((x, i) => {
+      let from = x.pick;
+      if (from.type === 'new') from = newFromPick ??= ensureNew('from');
+      const a = lineAmount(i);
+      const fromLabel = info(from).t; const toLabel = to.type === 'expense' ? `Expense · ${S.expCat}` : info(to).t;
+      if (from.type === 'income' && to.type === 'expense') {
+        recs.push({ kind: 'Income', text: `${S.incCat} ${money(a)}`, sub: `paid straight to ${S.expCat} · counts as income`, linked: true });
+        recs.push({ kind: 'Expense', text: `${S.expCat} ${money(a)}`, sub: `paid from that income · counts as spending`, linked: true });
+        return;
+      }
+      if (from.type !== 'income') move(from, -a);
+      if (to.type !== 'expense') move(to, crossCur ? parse(S.received) : a);
+      const kind = from.type === 'income' ? 'Income' : to.type === 'expense' ? 'Expense' : 'Transfer';
+      recs.push({ kind, text: `${money(a, fromCur)}${crossCur ? ' → ' + money(parse(S.received), toInfo.cur) : ''}`, sub: `${from.type === 'income' ? 'Income · ' + S.incCat : fromLabel} → ${toLabel}${kind === 'Income' ? ' · counts as income' : kind === 'Expense' ? ' · counts as spending' : ''}` });
+    });
+    const fee = parse(S.fee);
+    const feeAcct = S.sources.find((x) => x.pick?.type === 'acct')?.pick;
+    if (fee && feeAcct && !toExpense()) { acc(feeAcct.id).bal -= fee; recs.push({ kind: 'Expense', text: money(fee), sub: `Fee · from ${acc(feeAcct.id).name} · linked to the entry` }); }
+    const firstAcct = S.sources.find((x) => x.pick?.type === 'acct');
+    if (firstAcct) lastFrom = firstAcct.pick.id;
+    result = { recs, changes: diff(before, snapshot()) };
+    screen = 'result';
+    render();
+  }
+  const snapshot = () => ({ a: Object.fromEntries(accounts.map((x) => [x.id, x.bal])), l: Object.fromEntries(loans.map((x) => [x.id, x.bal])) });
+  function diff(b, a) {
+    const out = [];
+    for (const x of accounts) if (b.a[x.id] !== a.a[x.id]) out.push([x.name, money(b.a[x.id], x.cur), money(a.a[x.id], x.cur)]);
+    for (const x of loans) if (b.l[x.id] !== a.l[x.id] || (x.created && !(x.id in b.l))) out.push([`${x.purpose} · ${x.person}`, x.id in b.l ? standing(b.l[x.id]) : 'new', standing(a.l[x.id])]);
+    return out;
+  }
+
+  // ---------- Rendering ----------
+  const app = document.getElementById('app');
+  const layer = document.getElementById('layer');
+
+  function pickButton(p, side, index) {
+    const i = info(p, side);
+    if (!i) return `<button class="pick empty" data-open="${side}" data-index="${index}"><span class="ic">?</span><span class="main"><span class="t">Choose…</span><span class="s">${side === 'from' ? 'an account, a person, Income or a new loan' : 'an account, a person, Expense or a new loan'}</span></span><span class="chev">›</span></button>`;
+    return `<button class="pick" data-open="${side}" data-index="${index}"><span class="ic ${i.cls ?? ''}">${esc(i.ic)}</span><span class="main"><span class="t">${esc(i.t)}</span><span class="s">${esc(i.s)}</span></span><span class="chev">›</span></button>`;
+  }
+
+  /** Category chips: the first eight (plus the chosen one), and More for the rest. */
+  function catChips(label, which, list, chosen) {
+    const shown = allCats ? list : list.filter((c, i) => i < 8 || c === chosen);
+    const more = !allCats && list.length > shown.length;
+    return `<div class="field"><label>${label}</label><div class="chips" data-cats="${which}">${shown.map((c) => `<button aria-pressed="${chosen === c}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}${more ? `<button data-more-cats>More…</button>` : ''}</div></div>`;
+  }
+
+  function renderForm() {
+    const A = analyse();
+    const showFee = S.sources.some((x) => x.pick?.type === 'acct') && S.to && !toExpense() && S.to.type !== 'expense';
+    const newFrom = S.sources.some((x) => x.pick?.type === 'new');
+    const sym = A.fromCur === 'USD' ? '$' : '৳';
+    app.innerHTML = `
+      <div class="title"><h1>Add</h1><span class="small">What happened?</span></div>
+      <div class="quick" role="group" aria-label="Quick start">
+        <button data-quick="spent">Spent</button><button data-quick="earned">Earned</button><button data-quick="moved">Moved</button>
+        <button data-quick="lent">Lent</button><button data-quick="borrowed">Borrowed</button><button data-quick="fix">Fix a balance</button>
+      </div>
+      <section class="card">
+        ${multi() ? '' : `<div class="amount"><span>${sym}</span><input id="total" inputmode="decimal" placeholder="0" value="${esc(S.total)}" aria-label="Amount"></div>`}
+        <div class="side">
+          <div class="side-head"><p class="label">From</p>${multi() ? `<span class="small num">Total ${money(totalAmount(), A.fromCur)}</span>` : ''}</div>
+          ${S.sources.map((x, i) => `<div class="src-line ${multi() ? '' : 'single'}">${pickButton(x.pick, 'from', i)}${multi() ? `<input inputmode="decimal" data-amt="${i}" placeholder="${sym}0" value="${esc(x.amount)}" aria-label="Amount from source ${i + 1}"><button class="x" data-remove="${i}" aria-label="Remove this source">×</button>` : ''}</div>`).join('')}
+          <button class="link" data-add-source>＋ Add another source</button>
+          ${S.sources.some((x) => x.auto) ? `<p class="small">The person owes you less than the amount, so the rest needs another source: one of your accounts, or a new loan if they paid it all.</p>` : ''}
+        </div>
+        ${newFrom ? `<div class="sub-box"><p class="label">New loan (From) · you'll owe them</p><div class="two"><div class="field"><label for="nf-who">Who</label><input type="text" id="nf-who" list="people" value="${esc(S.newFrom.who)}" placeholder="e.g. Rafi"></div><div class="field"><label for="nf-why">What it's for</label><input type="text" id="nf-why" value="${esc(S.newFrom.why)}" placeholder="${esc(S.note || 'e.g. Dinner')}"></div></div></div>` : ''}
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="side">
+          <p class="label">To</p>
+          ${pickButton(S.to, 'to', 0)}
+        </div>
+        ${S.to?.type === 'new' ? `<div class="sub-box"><p class="label">New loan (To) · they'll owe you</p><div class="two"><div class="field"><label for="nt-who">Who</label><input type="text" id="nt-who" list="people" value="${esc(S.newTo.who)}" placeholder="e.g. Rafi"></div><div class="field"><label for="nt-why">What it's for</label><input type="text" id="nt-why" value="${esc(S.newTo.why)}" placeholder="${esc(S.note || 'e.g. Fridge')}"></div></div></div>` : ''}
+        ${hasIncome() ? catChips('What kind of income', 'inc', INCOME_CATS, S.incCat) : ''}
+        ${toExpense() ? catChips('Spent on', 'exp', EXPENSE_CATS, S.expCat) : ''}
+        ${A.crossCur ? `<div class="field"><label for="recv">Amount received (${A.toInfo.cur === 'USD' ? '$' : '৳'})</label><input id="recv" inputmode="decimal" value="${esc(S.received)}" placeholder="0"></div>` : ''}
+        <div class="two">
+          <div class="field"><label for="date">Date</label><input type="date" id="date" value="${esc(S.date)}"></div>
+          ${showFee ? `<div class="field"><label for="fee">Fee (optional)</label><input id="fee" inputmode="decimal" value="${esc(S.fee)}" placeholder="0"></div>` : '<div></div>'}
+        </div>
+        <div class="field"><label for="note">Note (optional)</label><input type="text" id="note" value="${esc(S.note)}" placeholder="e.g. Dinner with family"></div>
+        <div class="sentence" aria-live="polite">
+          ${A.lines.length ? (A.lines.length === 1 ? `<p class="lead">${esc(A.lines[0])}</p>` : `<p class="lead">This records ${A.lines.length} things:</p><ul>${A.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`) : '<p class="small">Choose From and To, and a sentence here will say what you are recording.</p>'}
+        </div>
+        ${A.warns.map((w) => `<div class="msg warn">⚠ ${esc(w)}</div>`).join('')}
+        ${A.errs.length && (S.total || multi() || S.to) ? `<div class="msg err">${esc(A.errs[0])}</div>` : ''}
+        <button class="btn" data-save ${A.errs.length ? 'disabled' : ''}>${A.warns.length ? 'Save anyway' : 'Save'}</button>
+      </section>
+      <datalist id="people">${people().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist>
+      <p class="small">Settled loans aren’t listed (e.g. <i>Fridge · Rafi</i>). To reuse one, open it from Loans.</p>`;
+  }
+
+  function renderResult() {
+    app.innerHTML = `
+      <div class="title"><h1>Saved</h1><span class="small">mockup: nothing is stored</span></div>
+      <section class="card result">
+        <p class="label">Records created</p>
+        <div>${result.recs.map((r) => `<div class="rec"><span><span class="k">${esc(r.kind)}${r.linked ? ' · linked pair' : ''}</span><br><b>${esc(r.text)}</b><br><span class="small">${esc(r.sub)}</span></span></div>`).join('')}</div>
+        <p class="label">What changed</p>
+        ${result.changes.length ? `<table class="changes">${result.changes.map(([n, b, a]) => `<tr><td>${esc(n)}</td><td class="num">${esc(b)} → <b>${esc(a)}</b></td></tr>`).join('')}</table>` : '<p class="small">None of your accounts or loans changed (only income and spending are counted).</p>'}
+        <div class="two"><button class="btn" data-again>Add another</button><button class="btn ghost" data-reset>Reset sample data</button></div>
+      </section>`;
+  }
+
+  function renderFix() {
+    const id = S.fixId ?? accounts[0].id; const a = acc(id); const real = parse(S.fixReal);
+    const diffAmt = S.fixReal ? real - a.bal : 0;
+    app.innerHTML = `
+      <div class="title"><h1>Fix a balance</h1><button class="link" data-back>‹ Back</button></div>
+      <section class="card">
+        <div class="field"><label>Account</label><div class="chips">${accounts.map((x) => `<button aria-pressed="${x.id === id}" data-fix="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>
+        <p class="small">The app says <b>${esc(a.name)}</b> has <b>${money(a.bal, a.cur)}</b>. Type what it really has.</p>
+        <div class="field"><label for="real">Real balance</label><input id="real" inputmode="decimal" value="${esc(S.fixReal ?? '')}" placeholder="0"></div>
+        <div class="sentence"><p class="lead">${S.fixReal ? (diffAmt === 0 ? 'The balance already matches.' : `A correction of ${diffAmt > 0 ? '+' : ''}${money(diffAmt, a.cur)}. Not counted as spending or income.`) : 'Type the real balance to see the correction.'}</p></div>
+        <button class="btn" data-fix-save ${S.fixReal && diffAmt !== 0 ? '' : 'disabled'}>Save correction</button>
+      </section>`;
+  }
+
+  function renderPicker() {
+    if (!picker) { layer.innerHTML = ''; return; }
+    const { side, index } = picker;
+    const others = side === 'from' ? [S.to] : S.sources.map((x) => x.pick);
+    const taken = (p) => others.some((o) => sameTarget(o, p));
+    const usedIncome = side === 'from' && S.sources.some((x, i) => i !== index && x.pick?.type === 'income');
+    const opt = (p, extra = '') => {
+      const i = info(p, side); const dis = taken(p) || (p.type === 'income' && usedIncome);
+      return `<button class="opt" data-choose='${JSON.stringify(p)}' ${dis ? 'disabled' : ''}><span class="ic ${i.cls ?? ''}">${esc(i.ic)}</span><span class="main"><span class="t">${esc(i.t)}</span><span class="s">${esc(dis ? (p.type === 'income' ? 'already picked' : 'already on the other side') : i.s)}${extra}</span></span></button>`;
+    };
+    const open = loans.filter((l) => l.bal !== 0);
+    const hidden = loans.length - open.length;
+    layer.innerHTML = `<div class="scrim" data-close><div class="sheet" role="dialog" aria-label="Choose ${side}">
+      <h2>${side === 'from' ? 'Where does the money come from?' : 'Where does the money go?'}<button class="x" data-close aria-label="Close">×</button></h2>
+      ${side === 'from' ? opt({ type: 'income' }) : opt({ type: 'expense' })}
+      <p class="group" id="g-acct">My accounts</p>
+      ${accounts.map((a) => opt({ type: 'acct', id: a.id })).join('')}
+      <p class="group" id="g-people">People (open loans)</p>
+      ${open.map((l) => opt({ type: 'loan', id: l.id })).join('')}
+      ${opt({ type: 'new' })}
+      ${hidden ? `<p class="small" style="margin:4px 8px">${hidden} settled loan${hidden === 1 ? '' : 's'} not shown.</p>` : ''}
+    </div></div>`;
+    if (picker.focus) document.getElementById(picker.focus)?.scrollIntoView({ block: 'start' });
+  }
+
+  function render() {
+    const active = document.activeElement?.id; const pos = document.activeElement?.selectionStart;
+    if (screen === 'form') renderForm(); else if (screen === 'result') renderResult(); else renderFix();
+    renderPicker();
+    const el = active && document.getElementById(active);
+    if (el && el.tagName === 'INPUT') { el.focus(); try { if (pos != null) el.setSelectionRange(pos, pos); } catch {} }
+    document.querySelectorAll('#theme [data-t]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === (root.dataset.theme ?? 'system'))));
+  }
+
+  // ---------- Events ----------
+  const root = document.documentElement;
+  document.addEventListener('click', (ev) => {
+    const t = ev.target.closest('button, [data-close]');
+    if (!t) return;
+    const d = t.dataset;
+    if (d.t) { if (d.t === 'system') delete root.dataset.theme; else root.dataset.theme = d.t; return render(); }
+    if (t.id === 'reset-data' || 'reset' in d) { resetData(); S = fresh({ from: { type: 'acct', id: lastFrom } }); screen = 'form'; return render(); }
+    if ('close' in d && (t.classList.contains('scrim') ? ev.target === t : true)) { picker = null; return render(); }
+    if (d.quick) {
+      // Quick start: set only the side the word implies; leave the other side empty.
+      const q = d.quick;
+      if (q === 'fix') { screen = 'fix'; S.fixReal = ''; return render(); }
+      S = fresh({ from: null, to: q === 'spent' ? { type: 'expense' } : null });
+      if (q === 'earned') S.sources[0].pick = { type: 'income' };
+      if (q === 'lent') picker = { side: 'to', index: 0, focus: 'g-people' };
+      if (q === 'borrowed') picker = { side: 'from', index: 0, focus: 'g-people' };
+      return render();
+    }
+    if (d.open) { picker = { side: d.open, index: Number(d.index) }; return render(); }
+    if (d.choose) {
+      const p = JSON.parse(d.choose);
+      if (picker.side === 'from') { S.sources[picker.index].pick = p; S.sources[picker.index].auto = false; autoSplit(); }
+      else S.to = p;
+      picker = null; return render();
+    }
+    if ('addSource' in d) {
+      if (!multi()) S.sources[0].amount = S.total;
+      S.sources.push({ pick: null, amount: '' }); return render();
+    }
+    if (d.remove) {
+      S.sources.splice(Number(d.remove), 1);
+      if (S.sources.length === 1) { S.total = S.sources[0].amount; S.sources[0].amount = ''; }
+      return render();
+    }
+    if ('moreCats' in d) { allCats = true; return render(); }
+    if (d.cat) {
+      const which = t.closest('[data-cats]').dataset.cats;
+      if (which === 'exp') S.expCat = S.expCat === d.cat ? '' : d.cat; else S.incCat = S.incCat === d.cat ? '' : d.cat;
+      return render();
+    }
+    if ('save' in d) return save();
+    if ('again' in d) { S = fresh({ from: { type: 'acct', id: lastFrom } }); screen = 'form'; return render(); }
+    if ('back' in d) { screen = 'form'; return render(); }
+    if (d.fix) { S.fixId = d.fix; S.fixReal = ''; return render(); }
+    if ('fixSave' in d) {
+      const a = acc(S.fixId ?? accounts[0].id); const before = snapshot(); const real = parse(S.fixReal); const delta = real - a.bal; a.bal = real;
+      result = { recs: [{ kind: 'Correction', text: `${delta > 0 ? '+' : ''}${money(delta, a.cur)}`, sub: `${a.name} · not counted as spending or income` }], changes: diff(before, snapshot()) };
+      screen = 'result'; return render();
+    }
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.id === 'total') { S.total = t.value; S.sources[0].auto = false; }
+    else if (t.dataset.amt) S.sources[Number(t.dataset.amt)].amount = t.value;
+    else if (t.id === 'nf-who') S.newFrom.who = t.value; else if (t.id === 'nf-why') S.newFrom.why = t.value;
+    else if (t.id === 'nt-who') S.newTo.who = t.value; else if (t.id === 'nt-why') S.newTo.why = t.value;
+    else if (t.id === 'recv') S.received = t.value; else if (t.id === 'fee') S.fee = t.value;
+    else if (t.id === 'note') S.note = t.value; else if (t.id === 'date') S.date = t.value; else if (t.id === 'real') S.fixReal = t.value;
+    else return;
+    render();
+  });
+  // Splitting is offered once the amount is typed in full (on leaving the box), not on every keystroke.
+  document.addEventListener('change', (ev) => { if (ev.target.id === 'total') { autoSplit(); render(); } });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && picker) { picker = null; render(); } });
+
+  render();
+})();
+</script>
+</body>
+</html>

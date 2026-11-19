@@ -4,6 +4,8 @@
 
 **Card contrast mockup:** [mockup-contrast.html](mockup-contrast.html), the same prototype with a *Card contrast* dial (16 Nov 2026, approved; now in Settings > Look).
 
+**From / To mockup:** [mockup-from-to.html](mockup-from-to.html), a clickable proposal (20 Nov 2026) for one Add screen where every entry is money moving From one or more sources To one destination, with a sentence saying what is recorded. Not built yet.
+
 ## Goal
 
 Understand your money **without effort**: where you stand, where it went, and who owes whom, each readable at a glance.
