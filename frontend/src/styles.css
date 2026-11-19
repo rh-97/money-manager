@@ -287,6 +287,12 @@ details.settled summary::-webkit-details-marker { display: none; }
 .sheet-wrap.center { align-items: center; padding: 24px; }
 .sheet { width: 100%; max-width: 440px; max-height: 88vh; overflow: auto; background: var(--surface); border-radius: 24px 24px 0 0; padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
 .sheet-wrap.center .sheet { border-radius: 24px; max-width: 480px; }
+/* A thin, quiet scrollbar inside pop-ups: no track, a soft rounded thumb that keeps clear of the rounded corners. */
+.sheet { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent; }
+.sheet::-webkit-scrollbar { width: 6px; }
+.sheet::-webkit-scrollbar-track { background: transparent; margin: 20px 0; }
+.sheet::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 35%, transparent); border-radius: 999px; }
+.sheet::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
 .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }
 .type-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
