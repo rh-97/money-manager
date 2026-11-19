@@ -197,9 +197,9 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 
 /* Entry rows */
 .rows { display: flex; flex-direction: column; }
-.row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); min-width: 0; }
 .rows > .row:first-child { border-top: 0; }
-.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-amt { font-weight: 700; font-size: 15.5px; white-space: nowrap; text-align: right; }
@@ -224,7 +224,6 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .tabs .t-amt { font-family: var(--font-display); font-size: 18px; font-weight: 800; }
 .loan-card { background: var(--surface); border-radius: var(--r-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .loan-top { display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 0; text-align: left; width: 100%; }
-.loan-top .row-main { gap: 1px; }
 .progress { height: 8px; border-radius: 999px; background: var(--track); overflow: hidden; }
 .progress span { display: block; height: 100%; border-radius: 999px; background: var(--bar); }
 .loan-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
@@ -354,6 +353,9 @@ body { margin: 0; }
 .check-row input { width: 20px; height: 20px; margin-top: 1px; flex: none; }
 .list-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .row-btn { border: 0; background: none; width: 100%; text-align: left; padding: 0; }
+/* Tappable list rows (entries in Home, History, account and loan pages) keep the row's spacing and divider. */
+.row.row-btn { padding: 12px 0; border-top: 1px solid var(--line); }
+.rows > .row.row-btn:first-child { border-top: 0; }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: var(--surface-2); color: var(--muted); }
 .pill.warn { background: var(--neg-soft); color: var(--neg); }
 .conflict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -376,7 +378,7 @@ body { margin: 0; }
 .setting-row .row-main { min-width: 160px; }
 .setting-row .row-sub { white-space: normal; }
 .stage.phone .setting-row .row-main { flex-basis: 100%; }
-.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 6px 0; border-top: 1px solid var(--line); }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 9px 0; border-top: 1px solid var(--line); }
 .kv:first-child { border-top: 0; }
 
 /* Phone: keep the tab bar pinned to the bottom of the screen, even on short pages. */
@@ -402,7 +404,7 @@ body { margin: 0; }
 @keyframes pin-shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
 .pin-card { padding-block: 6px; }
-.pin-row { flex-wrap: wrap; row-gap: 10px; }
+.pin-row { flex-wrap: wrap; row-gap: 10px; border-top: 0; }
 .pin-row .row-main { flex: 1 1 220px; min-width: 0; }
 .pin-row .row-sub { white-space: normal; }
 .pin-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
